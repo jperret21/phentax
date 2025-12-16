@@ -8,11 +8,11 @@ and spin-weighted spherical harmonics, all implemented in pure JAX.
 """
 
 from functools import partial
-from typing import Union
 
 import jax
 import jax.numpy as jnp
 from jax import lax
+from jaxtyping import Array
 
 from .constants import C_SI, MPC_TO_M, MTSUN_SI
 
@@ -22,9 +22,7 @@ from .constants import C_SI, MPC_TO_M, MTSUN_SI
 
 
 @jax.jit
-def m1ofeta(
-    eta: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray] = 1.0
-) -> Union[float, jnp.ndarray]:
+def m1ofeta(eta: float | Array, total_mass: float | Array = 1.0) -> float | Array:
     """
     Compute primary mass from symmetric mass ratio.
 
@@ -45,22 +43,20 @@ def m1ofeta(
 
 
 @jax.jit
-def m2ofeta(
-    eta: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray] = 1.0
-) -> Union[float, jnp.ndarray]:
+def m2ofeta(eta: float | Array, total_mass: float | Array = 1.0) -> float | Array:
     """
     Compute secondary mass from symmetric mass ratio.
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : float | Array
         Symmetric mass ratio in [0, 0.25].
-    total_mass : Union[float, jnp.ndarray], default 1.0
+    total_mass : float | Array, default 1.0
         Total mass (m1 + m2). If 1.0, returns dimensionless mass fraction.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Secondary (smaller) mass.
     """
     delta = jnp.sqrt(1.0 - 4.0 * eta)
@@ -68,18 +64,18 @@ def m2ofeta(
 
 
 @jax.jit
-def qofeta(eta: Union[float, jnp.ndarray]) -> Union[float, jnp.ndarray]:
+def qofeta(eta: float | Array) -> float | Array:
     """
     Compute mass ratio q = m1/m2 >= 1 from symmetric mass ratio.
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : float | Array
         Symmetric mass ratio in [0, 0.25].
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Mass ratio q >= 1.
     """
     m1 = m1ofeta(eta)
@@ -88,21 +84,48 @@ def qofeta(eta: Union[float, jnp.ndarray]) -> Union[float, jnp.ndarray]:
 
 
 @jax.jit
-def eta_from_q(q: Union[float, jnp.ndarray]) -> Union[float, jnp.ndarray]:
+def eta_from_q(q: float | Array) -> float | Array:
     """
     Compute symmetric mass ratio from mass ratio q = m1/m2 >= 1.
 
     Parameters
     ----------
-    q : Union[float, jnp.ndarray]
+    q : float | Array
         Mass ratio q >= 1.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Symmetric mass ratio eta.
     """
     return q / (1.0 + q) ** 2
+
+
+@jax.jit
+def check_equal_bhs(
+    m1: float | Array,
+    m2: float | Array,
+    s1z: float | Array,
+    s2z: float | Array,
+) -> bool | Array:
+    """
+    Check if the binary black hole system is equal-mass and equal-spin.
+
+    Parameters
+    ----------
+    m1, m2 : float | Array
+        Masses of the two black holes.
+    s1z, s2z : float | Array
+        Dimensionless spin z-components of the two black holes.
+
+    Returns
+    -------
+    bool | Array
+        True if equal-mass and equal-spin, False otherwise.
+    """
+    mass_equal = jnp.isclose(m1, m2)
+    spin_equal = jnp.isclose(s1z, s2z)
+    return jnp.logical_and(mass_equal, spin_equal)
 
 
 # =============================================================================
@@ -112,25 +135,25 @@ def eta_from_q(q: Union[float, jnp.ndarray]) -> Union[float, jnp.ndarray]:
 
 @jax.jit
 def chi_eff(
-    eta: Union[float, jnp.ndarray],
-    s1z: Union[float, jnp.ndarray],
-    s2z: Union[float, jnp.ndarray],
-) -> Union[float, jnp.ndarray]:
+    eta: float | Array,
+    s1z: float | Array,
+    s2z: float | Array,
+) -> float | Array:
     """
     Compute effective spin parameter.
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : float | Array
         Symmetric mass ratio.
-    s1z : Union[float, jnp.ndarray]
+    s1z : float | Array
         Dimensionless spin of primary along orbital angular momentum.
-    s2z : Union[float, jnp.ndarray]
+    s2z : float | Array
         Dimensionless spin of secondary along orbital angular momentum.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Effective spin chi_eff = (m1*s1z + m2*s2z) / (m1 + m2).
     """
     m1 = m1ofeta(eta)
@@ -140,10 +163,10 @@ def chi_eff(
 
 @jax.jit
 def sTotR(
-    eta: Union[float, jnp.ndarray],
-    s1z: Union[float, jnp.ndarray],
-    s2z: Union[float, jnp.ndarray],
-) -> Union[float, jnp.ndarray]:
+    eta: float | Array,
+    s1z: float | Array,
+    s2z: float | Array,
+) -> float | Array:
     """
     Compute reduced total spin parameter S = (m1^2*s1z + m2^2*s2z) / (m1^2 + m2^2).
 
@@ -151,16 +174,16 @@ def sTotR(
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : float | Array
         Symmetric mass ratio.
-    s1z : Union[float, jnp.ndarray]
+    s1z : float | Array
         Dimensionless spin of primary along orbital angular momentum.
-    s2z : Union[float, jnp.ndarray]
+    s2z : float | Array
         Dimensionless spin of secondary along orbital angular momentum.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Reduced total spin S.
     """
     m1 = m1ofeta(eta)
@@ -176,88 +199,80 @@ def sTotR(
 
 
 @jax.jit
-def hz_to_mf(
-    f_hz: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray]
-) -> Union[float, jnp.ndarray]:
+def hz_to_mf(f_hz: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert frequency from Hz to dimensionless units (Mf).
 
     Parameters
     ----------
-    f_hz : Union[float, jnp.ndarray]
+    f_hz : float | Array
         Frequency in Hz.
-    total_mass : Union[float, jnp.ndarray]
+    total_mass : float | Array
         Total mass in solar masses.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Dimensionless frequency Mf.
     """
     return f_hz * total_mass * MTSUN_SI
 
 
 @jax.jit
-def mf_to_hz(
-    mf: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray]
-) -> Union[float, jnp.ndarray]:
+def mf_to_hz(mf: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert frequency from dimensionless units (Mf) to Hz.
 
     Parameters
     ----------
-    mf : Union[float, jnp.ndarray]
+    mf : float | Array
         Dimensionless frequency Mf.
-    total_mass : Union[float, jnp.ndarray]
+    total_mass : float | Array
         Total mass in solar masses.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Frequency in Hz.
     """
     return mf / (total_mass * MTSUN_SI)
 
 
 @jax.jit
-def second_to_mass(
-    t_sec: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray]
-) -> Union[float, jnp.ndarray]:
+def second_to_mass(t_sec: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert time from seconds to dimensionless units (t/M).
 
     Parameters
     ----------
-    t_sec : Union[float, jnp.ndarray]
+    t_sec : float | Array
         Time in seconds.
-    total_mass : Union[float, jnp.ndarray]
+    total_mass : float | Array
         Total mass in solar masses.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Dimensionless time t/M.
     """
     return t_sec / (total_mass * MTSUN_SI)
 
 
 @jax.jit
-def mass_to_second(
-    t_m: Union[float, jnp.ndarray], total_mass: Union[float, jnp.ndarray]
-) -> Union[float, jnp.ndarray]:
+def mass_to_second(t_m: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert time from dimensionless units (t/M) to seconds.
 
     Parameters
     ----------
-    t_m : Union[float, jnp.ndarray]
+    t_m : float | Array
         Dimensionless time t/M.
-    total_mass : Union[float, jnp.ndarray]
+    total_mass : float | Array
         Total mass in solar masses.
 
     Returns
     -------
-    Union[float, jnp.ndarray]
+    float | Array
         Time in seconds.
     """
     return t_m * total_mass * MTSUN_SI
@@ -266,8 +281,8 @@ def mass_to_second(
 @jax.jit
 def amp_nrto_si(
     h_nr: jnp.ndarray,
-    distance_mpc: Union[float, jnp.ndarray],
-    total_mass: Union[float, jnp.ndarray],
+    distance_mpc: float | Array,
+    total_mass: float | Array,
 ) -> jnp.ndarray:
     """
     Convert strain amplitude from NR units to SI units.
@@ -276,9 +291,9 @@ def amp_nrto_si(
     ----------
     h_nr : array
         Strain in NR units (dimensionless, at unit distance).
-    distance_mpc : Union[float, jnp.ndarray]
+    distance_mpc : float | Array
         Luminosity distance in Megaparsecs.
-    total_mass : Union[float, jnp.ndarray]
+    total_mass : float | Array
         Total mass in solar masses.
 
     Returns

@@ -11,56 +11,57 @@ References:
 - Amplitude PN: Eq. 9.4 Blanchet 2008, Eq. 43 Faye 2012, Eq. 4.17 Arun, Eq. 4.27 Buonanno
 """
 
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+from jaxtyping import Array
 
 
 class OmegaPNCoeffs(NamedTuple):
     """TaylorT3 omega PN coefficients (up to 3.5PN)."""
 
-    omega1PN: Union[float, jnp.ndarray]
-    omega1halfPN: Union[float, jnp.ndarray]
-    omega2PN: Union[float, jnp.ndarray]
-    omega2halfPN: Union[float, jnp.ndarray]
-    omega3PN: Union[float, jnp.ndarray]
-    omega3halfPN: Union[float, jnp.ndarray]
+    omega1PN: float | Array
+    omega1halfPN: float | Array
+    omega2PN: float | Array
+    omega2halfPN: float | Array
+    omega3PN: float | Array
+    omega3halfPN: float | Array
 
 
 class AmpPNCoeffs(NamedTuple):
     """Amplitude PN coefficients for a specific mode."""
 
     # Real part coefficients
-    ampN: Union[float, jnp.ndarray]  # Leading order
-    amp0halfPNreal: Union[float, jnp.ndarray]
-    amp1PNreal: Union[float, jnp.ndarray]
-    amp1halfPNreal: Union[float, jnp.ndarray]
-    amp2PNreal: Union[float, jnp.ndarray]
-    amp2halfPNreal: Union[float, jnp.ndarray]
-    amp3PNreal: Union[float, jnp.ndarray]
-    amp3halfPNreal: Union[float, jnp.ndarray]
-    amplog: Union[float, jnp.ndarray]  # Log term coefficient
+    ampN: float | Array  # Leading order
+    amp0halfPNreal: float | Array
+    amp1PNreal: float | Array
+    amp1halfPNreal: float | Array
+    amp2PNreal: float | Array
+    amp2halfPNreal: float | Array
+    amp3PNreal: float | Array
+    amp3halfPNreal: float | Array
+    amplog: float | Array  # Log term coefficient
     # Imaginary part coefficients
-    amp0halfPNimag: Union[float, jnp.ndarray]
-    amp1PNimag: Union[float, jnp.ndarray]
-    amp1halfPNimag: Union[float, jnp.ndarray]
-    amp2PNimag: Union[float, jnp.ndarray]
-    amp2halfPNimag: Union[float, jnp.ndarray]
-    amp3PNimag: Union[float, jnp.ndarray]
-    amp3halfPNimag: Union[float, jnp.ndarray]
+    amp0halfPNimag: float | Array
+    amp1PNimag: float | Array
+    amp1halfPNimag: float | Array
+    amp2PNimag: float | Array
+    amp2halfPNimag: float | Array
+    amp3PNimag: float | Array
+    amp3halfPNimag: float | Array
     # Prefactor
-    fac0: Union[float, jnp.ndarray]
+    fac0: float | Array
 
 
 @jax.jit
 def compute_omega_pn_coeffs(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> OmegaPNCoeffs:
     """
     Compute TaylorT3 omega PN coefficients.
@@ -69,13 +70,13 @@ def compute_omega_pn_coeffs(
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : Array
         Symmetric mass ratio.
-    chi1, chi2 : Union[float, jnp.ndarray]
+    chi1, chi2 : Array
         Dimensionless spin z-components.
-    delta : Union[float, jnp.ndarray]
+    delta : Array
         Mass difference ratio (m1-m2)/M.
-    m1, m2 : Union[float, jnp.ndarray]
+    m1, m2 : Array
         Component masses as fractions of total mass (m1+m2=1).
 
     Returns
@@ -90,125 +91,101 @@ def compute_omega_pn_coeffs(
     chi22 = chi2 * chi2
     chi23 = chi2 * chi22
 
-    # 1PN
-    omega1PN = 743.0 / 2688.0 + (11.0 * eta) / 32.0
+    omega1PN = 743 / 2688 + (11 * eta) / 32
 
-    # 1.5PN
-    omega1halfPN = (-19.0 * (chi1 + chi2) * eta) / 80.0 + (
-        -113.0 * (-2.0 * chi1 * m1 - 2.0 * chi2 * m2) - 96.0 * jnp.pi
-    ) / 320.0
+    omega1halfPN = (-19 * (chi1 + chi2) * eta) / 80 + (
+        -113 * (-2 * chi1 * m1 - 2 * chi2 * m2) - 96 * jnp.pi
+    ) / 320
 
-    # 2PN
     omega2PN = (
-        ((56975.0 + 61236.0 * chi12 - 119448.0 * chi1 * chi2 + 61236.0 * chi22) * eta)
-        / 258048.0
-        + (371.0 * eta2) / 2048.0
-        + (1855099.0 - 3429216.0 * chi12 * m1 - 3429216.0 * chi22 * m2) / 14450688.0
+        ((56975 + 61236 * chi12 - 119448 * chi1 * chi2 + 61236 * chi22) * eta) / 258048
+        + (371 * eta2) / 2048
+        + (1855099 - 3429216 * chi12 * m1 - 3429216 * chi22 * m2) / 14450688
     )
 
-    # 2.5PN
     omega2halfPN = (
-        (-17.0 * (chi1 + chi2) * eta2) / 128.0
-        + (-146597.0 * (-2.0 * chi1 * m1 - 2.0 * chi2 * m2) - 46374.0 * jnp.pi)
-        / 129024.0
+        (-17 * (chi1 + chi2) * eta2) / 128
+        + (-146597 * (-2 * chi1 * m1 - 2 * chi2 * m2) - 46374 * jnp.pi) / 129024
         + (
             eta
             * (
-                -2.0 * (chi1 * (1213.0 - 63.0 * delta) + chi2 * (1213.0 + 63.0 * delta))
-                + 117.0 * jnp.pi
+                -2 * (chi1 * (1213 - 63 * delta) + chi2 * (1213 + 63 * delta))
+                + 117 * jnp.pi
             )
         )
-        / 2304.0
+        / 2304
     )
-
-    # Euler's constant
-    euler_gamma = 0.5772156649015329
-
-    # 3PN
     omega3PN = (
-        -720817631400877.0 / 288412611379200.0
-        - (16928263.0 * chi12) / 137625600.0
-        - (16928263.0 * chi22) / 137625600.0
-        - (16928263.0 * chi12 * delta) / 137625600.0
-        + (16928263.0 * chi22 * delta) / 137625600.0
+        -720817631400877 / 288412611379200
+        - (16928263 * chi12) / 137625600
+        - (16928263 * chi22) / 137625600
+        - (16928263 * chi12 * delta) / 137625600
+        + (16928263 * chi22 * delta) / 137625600
         + (
-            (
-                -2318475.0
-                + 18767224.0 * chi12
-                - 54663952.0 * chi1 * chi2
-                + 18767224.0 * chi22
-            )
+            (-2318475 + 18767224 * chi12 - 54663952 * chi1 * chi2 + 18767224 * chi22)
             * eta2
         )
-        / 137625600.0
-        + (235925.0 * eta3) / 1769472.0
-        + (107.0 * euler_gamma) / 280.0
-        - (6127.0 * chi1 * jnp.pi) / 12800.0
-        - (6127.0 * chi2 * jnp.pi) / 12800.0
-        - (6127.0 * chi1 * delta * jnp.pi) / 12800.0
-        + (6127.0 * chi2 * delta * jnp.pi) / 12800.0
+        / 137625600
+        + (235925 * eta3) / 1769472
+        + (107 * jnp.euler_gamma) / 280
+        - (6127 * chi1 * jnp.pi) / 12800
+        - (6127 * chi2 * jnp.pi) / 12800
+        - (6127 * chi1 * delta * jnp.pi) / 12800
+        + (6127 * chi2 * delta * jnp.pi) / 12800
         + (
             eta
             * (
-                632550449425.0
-                + 35200873512.0 * chi12
-                - 28527282000.0 * chi1 * chi2
-                + 9605339856.0 * chi12 * delta
-                - 1512.0 * chi22 * (-23281001.0 + 6352738.0 * delta)
-                + 34172264448.0 * (chi1 + chi2) * jnp.pi
-                - 22912243200.0 * jnp.pi * jnp.pi
+                632550449425
+                + 35200873512 * chi12
+                - 28527282000 * chi1 * chi2
+                + 9605339856 * chi12 * delta
+                - 1512 * chi22 * (-23281001 + 6352738 * delta)
+                + 34172264448 * (chi1 + chi2) * jnp.pi
+                - 22912243200 * jnp.pi**2
             )
         )
-        / 104044953600.0
-        + (53.0 * jnp.pi * jnp.pi) / 200.0
-        + (107.0 * jnp.log(2.0)) / 280.0
+        / 104044953600
+        + (53 * jnp.pi**2) / 200
+        + (107 * jnp.log(2)) / 280
     )
-
-    # 3.5PN
     omega3halfPN = (
-        (-12029.0 * (chi1 + chi2) * eta3) / 92160.0
+        (-12029 * (chi1 + chi2) * eta3) / 92160
         + (
             eta2
             * (
-                507654.0 * chi1 * chi22
-                - 838782.0 * chi23
-                + chi2 * (-840149.0 + 507654.0 * chi12 - 870576.0 * delta)
-                + chi1 * (-840149.0 - 838782.0 * chi12 + 870576.0 * delta)
-                + 1701228.0 * jnp.pi
+                507654 * chi1 * chi22
+                - 838782 * chi23
+                + chi2 * (-840149 + 507654 * chi12 - 870576 * delta)
+                + chi1 * (-840149 - 838782 * chi12 + 870576 * delta)
+                + 1701228 * jnp.pi
             )
         )
-        / 15482880.0
+        / 15482880
         + (
             eta
             * (
-                -1134.0 * chi23 * (-206917.0 + 71931.0 * delta)
+                -1134 * chi23 * (-206917 + 71931 * delta)
                 + chi1
                 * (
-                    -1496368361.0
-                    - 429508815.0 * delta
-                    + 1134.0 * chi12 * (206917.0 + 71931.0 * delta)
+                    -1496368361
+                    - 429508815 * delta
+                    + 1134 * chi12 * (206917 + 71931 * delta)
                 )
-                - chi2 * (1496368361.0 - 429508815.0 * delta + 437064012.0 * chi12 * m1)
-                - 437064012.0 * chi1 * chi22 * m2
-                - 144.0
-                * (
-                    488825.0
-                    + 923076.0 * chi12
-                    - 1782648.0 * chi1 * chi2
-                    + 923076.0 * chi22
-                )
+                - chi2 * (1496368361 - 429508815 * delta + 437064012 * chi12 * m1)
+                - 437064012 * chi1 * chi22 * m2
+                - 144
+                * (488825 + 923076 * chi12 - 1782648 * chi1 * chi2 + 923076 * chi22)
                 * jnp.pi
             )
         )
-        / 185794560.0
+        / 185794560
         + (
-            -2.0 * chi1 * (-6579635551.0 + 535759434.0 * chi12) * m1
-            + 13159271102.0 * chi2 * m2
-            - 1071518868.0 * chi23 * m2
-            + (-565550067.0 + 930460608.0 * chi12 * m1 + 930460608.0 * chi22 * m2)
-            * jnp.pi
+            -2 * chi1 * (-6579635551 + 535759434 * chi12) * m1
+            + 13159271102 * chi2 * m2
+            - 1071518868 * chi23 * m2
+            + (-565550067 + 930460608 * chi12 * m1 + 930460608 * chi22 * m2) * jnp.pi
         )
-        / 1300561920.0
+        / 1300561920
     )
 
     return OmegaPNCoeffs(
@@ -223,12 +200,12 @@ def compute_omega_pn_coeffs(
 
 @jax.jit
 def compute_amp_pn_coeffs_22(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> AmpPNCoeffs:
     """
     Compute amplitude PN coefficients for the (2,2) mode.
@@ -240,13 +217,13 @@ def compute_amp_pn_coeffs_22(
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : Array
         Symmetric mass ratio.
-    chi1, chi2 : Union[float, jnp.ndarray]
+    chi1, chi2 : Array
         Dimensionless spin z-components.
-    delta : Union[float, jnp.ndarray]
+    delta : Array
         Mass difference ratio (m1-m2)/M.
-    m1, m2 : Union[float, jnp.ndarray]
+    m1, m2 : Array
         Component masses as fractions of total mass (m1+m2=1).
 
     Returns
@@ -328,12 +305,12 @@ def compute_amp_pn_coeffs_22(
 
 @jax.jit
 def compute_amp_pn_coeffs_21(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> AmpPNCoeffs:
     """Compute amplitude PN coefficients for the (2,1) mode."""
     # Spin combinations
@@ -400,12 +377,12 @@ def compute_amp_pn_coeffs_21(
 
 @jax.jit
 def compute_amp_pn_coeffs_33(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> AmpPNCoeffs:
     """Compute amplitude PN coefficients for the (3,3) mode."""
     Sc = m1 * m1 * chi1 + m2 * m2 * chi2
@@ -472,12 +449,12 @@ def compute_amp_pn_coeffs_33(
 
 @jax.jit
 def compute_amp_pn_coeffs_44(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> AmpPNCoeffs:
     """Compute amplitude PN coefficients for the (4,4) mode."""
     eta2 = eta * eta
@@ -545,12 +522,12 @@ def compute_amp_pn_coeffs_44(
 
 @jax.jit
 def compute_amp_pn_coeffs_55(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
 ) -> AmpPNCoeffs:
     """Compute amplitude PN coefficients for the (5,5) mode."""
     eta2 = eta * eta
@@ -612,12 +589,12 @@ def compute_amp_pn_coeffs_55(
 
 
 def compute_amp_pn_coeffs(
-    eta: Union[float, jnp.ndarray],
-    chi1: Union[float, jnp.ndarray],
-    chi2: Union[float, jnp.ndarray],
-    delta: Union[float, jnp.ndarray],
-    m1: Union[float, jnp.ndarray],
-    m2: Union[float, jnp.ndarray],
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
+    delta: float | Array,
+    m1: float | Array,
+    m2: float | Array,
     mode: int,
 ) -> AmpPNCoeffs:
     """
@@ -625,13 +602,13 @@ def compute_amp_pn_coeffs(
 
     Parameters
     ----------
-    eta : Union[float, jnp.ndarray]
+    eta : Array
         Symmetric mass ratio.
-    chi1, chi2 : Union[float, jnp.ndarray]
+    chi1, chi2 : Array
         Dimensionless spin z-components.
-    delta : Union[float, jnp.ndarray]
+    delta : Array
         Mass difference ratio (m1-m2)/M.
-    m1, m2 : Union[float, jnp.ndarray]
+    m1, m2 : Array
         Component masses as fractions of total mass.
     mode : int
         Mode key (22, 21, 33, 44, 55).

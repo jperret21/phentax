@@ -1,4 +1,4 @@
-# Copyright (C) 2024 Alessandro Santini
+# Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 """
 Collocation point methods for pseudo-PN coefficient computation.
@@ -13,26 +13,28 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float
 
+jax.config.update("jax_enable_x64", True)
+
 from . import fits
 
 
 class OmegaPseudoPNCoeffs(NamedTuple):
     """Pseudo-PN coefficients for omega inspiral ansatz (6 coefficients)."""
 
-    c1: float
-    c2: float
-    c3: float
-    c4: float
-    c5: float
-    c6: float
+    c1: float | Array
+    c2: float | Array
+    c3: float | Array
+    c4: float | Array
+    c5: float | Array
+    c6: float | Array
 
 
 class AmpPseudoPNCoeffs(NamedTuple):
     """Pseudo-PN coefficients for amplitude inspiral ansatz (3 coefficients)."""
 
-    c1: float
-    c2: float
-    c3: float
+    c1: float | Array
+    c2: float | Array
+    c3: float | Array
 
 
 # Theta collocation points for omega (dimensionless frequency parameter)
@@ -44,9 +46,9 @@ TIME_COLLOCATION_POINTS = jnp.array([-2000.0, -250.0, -150.0])
 
 @jax.jit
 def pn_ansatz_omega(
-    theta: float,
+    theta: float | Array,
     omega_pn_coeffs: jnp.ndarray,
-) -> Float[Array, ()]:
+) -> Array:
     """
     TaylorT3 PN omega ansatz.
 
@@ -54,14 +56,14 @@ def pn_ansatz_omega(
 
     Parameters
     ----------
-    theta : float
+    theta : float | Array
         Dimensionless frequency parameter theta = (-eta * t / 5)^(-1/8).
     omega_pn_coeffs : jnp.ndarray
         Array of 6 PN coefficients [omega1PN, omega1halfPN, omega2PN, omega2halfPN, omega3PN, omega3halfPN].
 
     Returns
     -------
-    float
+    float | Array
         TaylorT3 omega value.
     """
     omega1PN = omega_pn_coeffs[0]
@@ -94,11 +96,11 @@ def pn_ansatz_omega(
 
 
 def compute_omega_collocation_points(
-    eta: float,
-    chi1: float,
-    chi2: float,
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
     omega_pn_coeffs: jnp.ndarray,
-) -> tuple[jnp.ndarray, Float[Array, " "], Float[Array, " "]]:  # type: ignore
+) -> tuple[jnp.ndarray, float | Array, float | Array]:
     """
     Compute omega values at collocation points.
 
@@ -107,9 +109,9 @@ def compute_omega_collocation_points(
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    chi1, chi2 : float
+    chi1, chi2 : float | Array
         Dimensionless spin z-components.
     omega_pn_coeffs : jnp.ndarray
         Array of 6 PN coefficients.
@@ -202,9 +204,9 @@ def compute_omega_pseudo_pn_coeffs(
 
 
 def compute_amp_collocation_points(
-    eta: float,
-    chi1: float,
-    chi2: float,
+    eta: float | Array,
+    chi1: float | Array,
+    chi2: float | Array,
     mode: int,
 ) -> jnp.ndarray:
     """
@@ -214,9 +216,9 @@ def compute_amp_collocation_points(
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    chi1, chi2 : float
+    chi1, chi2 : float | Array
         Dimensionless spin z-components.
     mode : int
         Mode identifier (22, 21, 33, 44, 55).

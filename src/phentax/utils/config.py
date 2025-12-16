@@ -7,6 +7,8 @@ This module configures JAX for gravitational waveform computations,
 enabling float64 precision by default and providing platform controls.
 """
 
+import logging
+
 import jax
 
 
@@ -27,3 +29,25 @@ def configure_jax(enable_x64: bool = True, platform: str | None = None) -> None:
 
     if platform is not None:
         jax.config.update("jax_platform_name", platform)
+
+
+# Set up logging
+def setup_logging(level: int = logging.INFO) -> logging.Logger:
+    """
+    Set up logging for the phentax package.
+
+    Parameters
+    ----------
+    level : int, default logging.INFO
+        Logging level.
+    """
+    logger = logging.getLogger("phentax")
+    logger.setLevel(level)
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    return logger

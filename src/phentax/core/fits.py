@@ -11,8 +11,9 @@ final spin/mass, and other quantities. All functions are JAX-compatible.
 import jax
 import jax.numpy as jnp
 from jax import lax
+from jaxtyping import Array
 
-from .utils import m1ofeta, m2ofeta, sTotR
+from phentax.utils.utility import m1ofeta, m2ofeta, sTotR
 
 # =============================================================================
 # Final state quantities (Final spin, final mass)
@@ -20,15 +21,17 @@ from .utils import m1ofeta, m2ofeta, sTotR
 
 
 @jax.jit
-def final_mass_2017(eta: float, s1z: float, s2z: float) -> float:
+def final_mass_2017(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """
     Compute final remnant mass using IMRPhenomX fits (2017).
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
 
     Returns
@@ -95,15 +98,17 @@ def final_mass_2017(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def final_spin_2017(eta: float, s1z: float, s2z: float) -> float:
+def final_spin_2017(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """
     Compute final remnant spin using IMRPhenomX fits (2017).
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
 
     Returns
@@ -171,7 +176,7 @@ def final_spin_2017(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def fring_22(af: float) -> float:
+def fring_22(af: float | Array) -> float | Array:
     """Ringdown frequency for 22 mode."""
     x = af
     x2 = x * x
@@ -200,7 +205,7 @@ def fring_22(af: float) -> float:
 
 
 @jax.jit
-def fring_21(af: float) -> float:
+def fring_21(af: float | Array) -> float | Array:
     """Ringdown frequency for 21 mode."""
     x = af
     x2 = x * x
@@ -219,7 +224,7 @@ def fring_21(af: float) -> float:
 
 
 @jax.jit
-def fring_33(af: float) -> float:
+def fring_33(af: float | Array) -> float | Array:
     """Ringdown frequency for 33 mode."""
     x = af
     x2 = x * x
@@ -246,7 +251,7 @@ def fring_33(af: float) -> float:
 
 
 @jax.jit
-def fring_44(af: float) -> float:
+def fring_44(af: float | Array) -> float | Array:
     """Ringdown frequency for 44 mode."""
     x = af
     x2 = x * x
@@ -269,7 +274,7 @@ def fring_44(af: float) -> float:
 
 
 @jax.jit
-def fring_55(af: float) -> float:
+def fring_55(af: float | Array) -> float | Array:
     """Ringdown frequency for 55 mode."""
     x = af
     x2 = x * x
@@ -295,7 +300,7 @@ def fring_55(af: float) -> float:
 
 
 @jax.jit
-def fring_20(af: float) -> float:
+def fring_20(af: float | Array) -> float | Array:
     """Ringdown frequency for 20 mode."""
     x = af
     x2 = x * x
@@ -310,13 +315,13 @@ def fring_20(af: float) -> float:
     )
 
 
-def fring(af: float, mode: int) -> float:
+def fring(af: float | Array, mode: int | Array) -> float | Array:
     """
     Ringdown frequency for given mode.
 
     Parameters
     ----------
-    af : float
+    af : float | Array
         Final dimensionless spin.
     mode : int
         Mode key (22, 21, 33, 44, 55, 20).
@@ -376,7 +381,7 @@ def fring(af: float, mode: int) -> float:
 
 
 @jax.jit
-def fdamp_22(af: float) -> float:
+def fdamp_22(af: float | Array) -> float | Array:
     """Damping frequency for 22 mode."""
     x = af
     x2 = x * x
@@ -403,7 +408,7 @@ def fdamp_22(af: float) -> float:
 
 
 @jax.jit
-def fdamp_21(af: float) -> float:
+def fdamp_21(af: float | Array) -> float | Array:
     """Damping frequency for 21 mode."""
     x = af
     x2 = x * x
@@ -428,7 +433,7 @@ def fdamp_21(af: float) -> float:
 
 
 @jax.jit
-def fdamp_33(af: float) -> float:
+def fdamp_33(af: float | Array) -> float | Array:
     """Damping frequency for 33 mode."""
     x = af
     x2 = x * x
@@ -447,7 +452,7 @@ def fdamp_33(af: float) -> float:
 
 
 @jax.jit
-def fdamp_44(af: float) -> float:
+def fdamp_44(af: float | Array) -> float | Array:
     """Damping frequency for 44 mode."""
     x = af
     x2 = x * x
@@ -474,7 +479,7 @@ def fdamp_44(af: float) -> float:
 
 
 @jax.jit
-def fdamp_55(af: float) -> float:
+def fdamp_55(af: float | Array) -> float | Array:
     """Damping frequency for 55 mode."""
     x = af
     x2 = x * x
@@ -498,7 +503,7 @@ def fdamp_55(af: float) -> float:
 
 
 @jax.jit
-def fdamp_20(af: float) -> float:
+def fdamp_20(af: float | Array) -> float | Array:
     """Damping frequency for 20 mode."""
     x = af
     x2 = x * x
@@ -521,7 +526,7 @@ def fdamp_20(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_22(af: float) -> float:
+def fdamp_n2_22(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 22 mode."""
     x = af
     x2 = x * x
@@ -545,7 +550,7 @@ def fdamp_n2_22(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_21(af: float) -> float:
+def fdamp_n2_21(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 21 mode."""
     x = af
     x2 = x * x
@@ -565,7 +570,7 @@ def fdamp_n2_21(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_33(af: float) -> float:
+def fdamp_n2_33(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 33 mode."""
     x = af
     x2 = x * x
@@ -589,7 +594,7 @@ def fdamp_n2_33(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_44(af: float) -> float:
+def fdamp_n2_44(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 44 mode."""
     x = af
     x2 = x * x
@@ -613,7 +618,7 @@ def fdamp_n2_44(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_55(af: float) -> float:
+def fdamp_n2_55(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 55 mode."""
     x = af
     x2 = x * x
@@ -637,7 +642,7 @@ def fdamp_n2_55(af: float) -> float:
 
 
 @jax.jit
-def fdamp_n2_20(af: float) -> float:
+def fdamp_n2_20(af: float | Array) -> float | Array:
     """Second overtone damping frequency for 20 mode."""
     x = af
     x2 = x * x
@@ -660,7 +665,9 @@ def fdamp_n2_20(af: float) -> float:
 
 
 @jax.jit
-def inspiral_t0_22(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral TaylorT3 t0 calibration (mode-independent).
 
     Matches phenomxpy._IMRPhenomT_Inspiral_TaylorT3_t0.
@@ -749,36 +756,48 @@ def inspiral_t0_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def inspiral_t0_21(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral TaylorT3 t0 calibration for 21 mode (same as 22, mode-independent)."""
     return inspiral_t0_22(eta, s1z, s2z)
 
 
 @jax.jit
-def inspiral_t0_33(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral TaylorT3 t0 calibration for 33 mode (same as 22, mode-independent)."""
     return inspiral_t0_22(eta, s1z, s2z)
 
 
 @jax.jit
-def inspiral_t0_44(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral TaylorT3 t0 calibration for 44 mode (same as 22, mode-independent)."""
     return inspiral_t0_22(eta, s1z, s2z)
 
 
 @jax.jit
-def inspiral_t0_55(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral TaylorT3 t0 calibration for 55 mode (same as 22, mode-independent)."""
     return inspiral_t0_22(eta, s1z, s2z)
 
 
 @jax.jit
-def inspiral_t0_20(eta: float, s1z: float, s2z: float) -> float:
+def inspiral_t0_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Inspiral t0 calibration for 20 mode (same as 22, mode-independent)."""
     return inspiral_t0_22(eta, s1z, s2z)
 
 
-def inspiral_t0(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def inspiral_t0(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int
+) -> float | Array:
     """
     Inspiral TaylorT3 t0 calibration (mode-independent).
 
@@ -786,9 +805,9 @@ def inspiral_t0(eta: float, s1z: float, s2z: float, mode: int) -> float:
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
     mode : int
         Mode key (unused, kept for API consistency).
@@ -809,16 +828,18 @@ def inspiral_t0(eta: float, s1z: float, s2z: float, mode: int) -> float:
 
 
 @jax.jit
-def inspiral_freq_cp(eta: float, s1z: float, s2z: float, idx: int) -> float:
+def inspiral_freq_cp(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int
+) -> float | Array:
     """Inspiral frequency collocation point (mode-independent).
 
     Matches phenomxpy._IMRPhenomT_Inspiral_Freq_CP.
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
     idx : int
         Collocation point index (1-5).
@@ -1198,37 +1219,49 @@ def inspiral_freq_cp(eta: float, s1z: float, s2z: float, idx: int) -> float:
 
 # Keep legacy mode-specific functions that call the new unified function
 @jax.jit
-def inspiral_freq_cp_22(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 22 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
 
 @jax.jit
-def inspiral_freq_cp_21(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 21 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
 
 @jax.jit
-def inspiral_freq_cp_33(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 33 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
 
 @jax.jit
-def inspiral_freq_cp_44(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 44 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
 
 @jax.jit
-def inspiral_freq_cp_55(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 55 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
 
 @jax.jit
-def inspiral_freq_cp_20(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_freq_cp_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral frequency collocation point for 20 mode (mode-independent)."""
     return inspiral_freq_cp(eta, s1z, s2z, idx)
 
@@ -1239,16 +1272,18 @@ def inspiral_freq_cp_20(eta: float, s1z: float, s2z: float, idx: int = 1) -> flo
 
 
 @jax.jit
-def inspiral_amp_cp(eta: float, s1z: float, s2z: float, mode: int, idx: int) -> float:
+def inspiral_amp_cp(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int, idx: int
+) -> float | Array:
     """Inspiral amplitude collocation point.
 
     Matches phenomxpy._IMRPhenomT_Inspiral_Amp_CP.
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
     mode : int
         Mode (22, 21, 33, 44, 55).
@@ -1916,7 +1951,9 @@ def inspiral_amp_cp(eta: float, s1z: float, s2z: float, mode: int, idx: int) -> 
 
 
 @jax.jit
-def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def intermediate_freq_cp1(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int
+) -> float | Array:
     """
     Intermediate frequency collocation point 1 for all modes.
 
@@ -1925,11 +1962,11 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio
-    s1z : float
+    s1z : float | Array
         Dimensionless spin of primary along z-axis
-    s2z : float
+    s2z : float | Array
         Dimensionless spin of secondary along z-axis
     mode : int
         Mode identifier (22, 21, 33, 44, 55)
@@ -1953,7 +1990,7 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
     S5 = S * S4
     dchi2 = dchi * dchi
 
-    def _fit_22() -> float:
+    def _fit_22() -> float | Array:
         return (
             -0.3926039690467202 * dchi * delta * (1 - 2.359180951434749 * eta) * eta2
             - 0.28551098014898896
@@ -2013,7 +2050,7 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
             * S5
         )
 
-    def _fit_21() -> float:
+    def _fit_21() -> float | Array:
         return (
             0.10101718570562333
             - 0.04992957057407379 * eta
@@ -2049,7 +2086,7 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
             * S4
         )
 
-    def _fit_33() -> float:
+    def _fit_33() -> float | Array:
         return (
             0.28925318007299916
             - 0.11957063600442912 * eta
@@ -2093,7 +2130,7 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
             * S4
         )
 
-    def _fit_44() -> float:
+    def _fit_44() -> float | Array:
         return (
             0.3839588385106795
             - 0.1433725509161493 * eta
@@ -2133,7 +2170,7 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
             * S4
         )
 
-    def _fit_55() -> float:
+    def _fit_55() -> float | Array:
         return (
             0.49157926097800314
             - 0.5109882379431707 * eta
@@ -2186,37 +2223,49 @@ def intermediate_freq_cp1(eta: float, s1z: float, s2z: float, mode: int) -> floa
 
 # Legacy wrapper functions for backward compatibility
 @jax.jit
-def intermediate_freq_cp1_22(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 22 mode (legacy wrapper)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 22)
 
 
 @jax.jit
-def intermediate_freq_cp1_21(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 21 mode (legacy wrapper)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 21)
 
 
 @jax.jit
-def intermediate_freq_cp1_33(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 33 mode (legacy wrapper)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 33)
 
 
 @jax.jit
-def intermediate_freq_cp1_44(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 44 mode (legacy wrapper)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 44)
 
 
 @jax.jit
-def intermediate_freq_cp1_55(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 55 mode (legacy wrapper)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 55)
 
 
 @jax.jit
-def intermediate_freq_cp1_20(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp1_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 1 for 20 mode (use same as 22)."""
     return intermediate_freq_cp1(eta, s1z, s2z, 22)
 
@@ -2225,7 +2274,9 @@ def intermediate_freq_cp1_20(eta: float, s1z: float, s2z: float) -> float:
 # phenomxpy only has Intermediate_Freq_CP1, no CP2 functions.
 # These are kept for backward compatibility but should not be used.
 @jax.jit
-def intermediate_freq_cp2_22(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """DEPRECATED: Intermediate frequency collocation point 2 for 22 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -2246,7 +2297,9 @@ def intermediate_freq_cp2_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_freq_cp2_21(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """DEPRECATED: Intermediate frequency collocation point 2 for 21 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -2268,7 +2321,9 @@ def intermediate_freq_cp2_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_freq_cp2_33(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """DEPRECATED: Intermediate frequency collocation point 2 for 33 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -2290,7 +2345,9 @@ def intermediate_freq_cp2_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_freq_cp2_44(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 2 for 44 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -2312,7 +2369,9 @@ def intermediate_freq_cp2_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_freq_cp2_55(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 2 for 55 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -2334,7 +2393,9 @@ def intermediate_freq_cp2_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_freq_cp2_20(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_freq_cp2_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate frequency collocation point 2 for 20 mode (use same as 22)."""
     return intermediate_freq_cp2_22(eta, s1z, s2z)
 
@@ -2345,7 +2406,9 @@ def intermediate_freq_cp2_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_22(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """
     Peak frequency for 22 mode in dimensionless units (Mf).
 
@@ -2353,9 +2416,9 @@ def peak_freq_22(eta: float, s1z: float, s2z: float) -> float:
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
 
     Returns
@@ -2405,7 +2468,9 @@ def peak_freq_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_21(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak frequency for 21 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -2444,7 +2509,9 @@ def peak_freq_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_33(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak frequency for 33 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -2472,7 +2539,9 @@ def peak_freq_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_44(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak frequency for 44 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -2510,7 +2579,9 @@ def peak_freq_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_55(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak frequency for 55 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -2542,9 +2613,29 @@ def peak_freq_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_freq_20(eta: float, s1z: float, s2z: float) -> float:
+def peak_freq_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak frequency for 20 mode (use same as 22)."""
     return peak_freq_22(eta, s1z, s2z)
+
+
+# @jax.jit
+# def peak_freq(mode: int, eta: float | Array, s1z: float | Array, s2z: float | Array) -> float | Array:
+#     """Peak frequency for given mode."""
+
+#     return lax.select(
+#         [mode == 20, mode == 21, mode == 22, mode == 33, mode == 44, mode == 55],
+#         [
+#             peak_freq_22(eta, s1z, s2z),  # 20 uses 22
+#             peak_freq_21(eta, s1z, s2z),
+#             peak_freq_22(eta, s1z, s2z),
+#             peak_freq_33(eta, s1z, s2z),
+#             peak_freq_44(eta, s1z, s2z),
+#             peak_freq_55(eta, s1z, s2z),
+#         ],
+#         default=peak_freq_22(eta, s1z, s2z)
+#     )
 
 
 # =============================================================================
@@ -2553,7 +2644,9 @@ def peak_freq_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_22(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 22 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2579,7 +2672,9 @@ def rd_freq_d2_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_21(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 21 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2605,7 +2700,9 @@ def rd_freq_d2_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_33(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 33 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2631,7 +2728,9 @@ def rd_freq_d2_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_44(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 44 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2655,7 +2754,9 @@ def rd_freq_d2_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_55(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 55 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2679,13 +2780,17 @@ def rd_freq_d2_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d2_20(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d2_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D2 for 20 mode (use same as 22)."""
     return rd_freq_d2_22(eta, s1z, s2z)
 
 
 @jax.jit
-def rd_freq_d3_22(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 22 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2713,7 +2818,9 @@ def rd_freq_d3_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d3_21(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 21 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2740,7 +2847,9 @@ def rd_freq_d3_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d3_33(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 33 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2771,7 +2880,9 @@ def rd_freq_d3_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d3_44(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 44 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2795,7 +2906,9 @@ def rd_freq_d3_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d3_55(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 55 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -2819,7 +2932,9 @@ def rd_freq_d3_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_freq_d3_20(eta: float, s1z: float, s2z: float) -> float:
+def rd_freq_d3_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown frequency D3 for 20 mode (use same as 22)."""
     return rd_freq_d3_22(eta, s1z, s2z)
 
@@ -2830,37 +2945,49 @@ def rd_freq_d3_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def inspiral_amp_cp_22(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 22 mode."""
     return inspiral_amp_cp(eta, s1z, s2z, 22, idx)
 
 
 @jax.jit
-def inspiral_amp_cp_21(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 21 mode."""
     return inspiral_amp_cp(eta, s1z, s2z, 21, idx)
 
 
 @jax.jit
-def inspiral_amp_cp_33(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 33 mode."""
     return inspiral_amp_cp(eta, s1z, s2z, 33, idx)
 
 
 @jax.jit
-def inspiral_amp_cp_44(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 44 mode."""
     return inspiral_amp_cp(eta, s1z, s2z, 44, idx)
 
 
 @jax.jit
-def inspiral_amp_cp_55(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 55 mode."""
     return inspiral_amp_cp(eta, s1z, s2z, 55, idx)
 
 
 @jax.jit
-def inspiral_amp_cp_20(eta: float, s1z: float, s2z: float, idx: int = 1) -> float:
+def inspiral_amp_cp_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, idx: int = 1
+) -> float | Array:
     """Inspiral amplitude collocation point for 20 mode (use same as 22)."""
     return inspiral_amp_cp(eta, s1z, s2z, 22, idx)
 
@@ -2871,7 +2998,9 @@ def inspiral_amp_cp_20(eta: float, s1z: float, s2z: float, idx: int = 1) -> floa
 
 
 @jax.jit
-def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def intermediate_amp_cp1(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int
+) -> float | Array:
     """
     Intermediate amplitude collocation point 1 for all modes.
 
@@ -2880,11 +3009,11 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio
-    s1z : float
+    s1z : float | Array
         Dimensionless spin of primary along z-axis
-    s2z : float
+    s2z : float | Array
         Dimensionless spin of secondary along z-axis
     mode : int
         Mode identifier (22, 21, 33, 44, 55)
@@ -2910,7 +3039,7 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
     S3 = S * S2
     dchi2 = dchi * dchi
 
-    def _fit_22() -> float:
+    def _fit_22() -> float | Array:
         return (
             0.0004059354652663733 * eta * dchi2
             - 0.9382383412276684 * dchi * delta * (1 - 2.509151362054917 * eta) * eta3
@@ -2955,7 +3084,7 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
             * S3
         )
 
-    def _fit_21() -> float:
+    def _fit_21() -> float | Array:
         return (
             -0.9639235481813841 * dchi * (1 - 0.0953303705707973 * eta) * eta3
             + 0.023311043707270836 * dchi * (1 - 45.56758470014973 * eta) * S * eta3
@@ -2989,7 +3118,7 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
             * S3
         )
 
-    def _fit_33() -> float:
+    def _fit_33() -> float | Array:
         return (
             -0.0009410965748168944 * delta * (1 - 7.241296835003745 * eta) * eta * dchi2
             - 0.14546859303533213 * dchi * (1 - 8.38731410081936 * eta) * eta3
@@ -3019,7 +3148,7 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
             * S2
         )
 
-    def _fit_44() -> float:
+    def _fit_44() -> float | Array:
         return (
             S
             * (
@@ -3063,7 +3192,7 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
             * S3
         )
 
-    def _fit_55() -> float:
+    def _fit_55() -> float | Array:
         return (
             -0.00031681692142477853
             * delta
@@ -3115,37 +3244,49 @@ def intermediate_amp_cp1(eta: float, s1z: float, s2z: float, mode: int) -> float
 
 # Legacy wrapper functions for backward compatibility
 @jax.jit
-def intermediate_amp_cp1_22(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 22 mode (legacy wrapper)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 22)
 
 
 @jax.jit
-def intermediate_amp_cp1_21(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 21 mode (legacy wrapper)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 21)
 
 
 @jax.jit
-def intermediate_amp_cp1_33(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 33 mode (legacy wrapper)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 33)
 
 
 @jax.jit
-def intermediate_amp_cp1_44(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 44 mode (legacy wrapper)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 44)
 
 
 @jax.jit
-def intermediate_amp_cp1_55(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 55 mode (legacy wrapper)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 55)
 
 
 @jax.jit
-def intermediate_amp_cp1_20(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp1_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 1 for 20 mode (use same as 22)."""
     return intermediate_amp_cp1(eta, s1z, s2z, 22)
 
@@ -3154,7 +3295,9 @@ def intermediate_amp_cp1_20(eta: float, s1z: float, s2z: float) -> float:
 # phenomxpy only has Intermediate_Amp_CP1, no CP2 functions.
 # These are kept for backward compatibility but should not be used.
 @jax.jit
-def intermediate_amp_cp2_22(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """DEPRECATED: Intermediate amplitude collocation point 2 for 22 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -3178,7 +3321,9 @@ def intermediate_amp_cp2_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_amp_cp2_21(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 2 for 21 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -3200,7 +3345,9 @@ def intermediate_amp_cp2_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_amp_cp2_33(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 2 for 33 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -3222,7 +3369,9 @@ def intermediate_amp_cp2_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_amp_cp2_44(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 2 for 44 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -3244,7 +3393,9 @@ def intermediate_amp_cp2_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_amp_cp2_55(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 2 for 55 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     chi1 = s1z
@@ -3266,7 +3417,9 @@ def intermediate_amp_cp2_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def intermediate_amp_cp2_20(eta: float, s1z: float, s2z: float) -> float:
+def intermediate_amp_cp2_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Intermediate amplitude collocation point 2 for 20 mode (use same as 22)."""
     return intermediate_amp_cp2_22(eta, s1z, s2z)
 
@@ -3277,7 +3430,9 @@ def intermediate_amp_cp2_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_22(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 22 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -3331,7 +3486,9 @@ def peak_amp_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_21(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 21 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -3390,7 +3547,9 @@ def peak_amp_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_33(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 33 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -3436,7 +3595,9 @@ def peak_amp_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_44(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 44 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -3487,7 +3648,9 @@ def peak_amp_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_55(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 55 mode."""
     delta = (1.0 - 4.0 * eta) ** 0.5
     S = sTotR(eta, s1z, s2z)
@@ -3537,7 +3700,9 @@ def peak_amp_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def peak_amp_20(eta: float, s1z: float, s2z: float) -> float:
+def peak_amp_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Peak amplitude for 20 mode (use same as 22)."""
     return peak_amp_22(eta, s1z, s2z)
 
@@ -3548,7 +3713,9 @@ def peak_amp_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_22(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 22 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3570,7 +3737,9 @@ def rd_amp_c3_22(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_21(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 21 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3592,7 +3761,9 @@ def rd_amp_c3_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_33(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 33 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3614,7 +3785,9 @@ def rd_amp_c3_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_44(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 44 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3636,7 +3809,9 @@ def rd_amp_c3_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_55(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 55 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -3664,7 +3839,9 @@ def rd_amp_c3_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def rd_amp_c3_20(eta: float, s1z: float, s2z: float) -> float:
+def rd_amp_c3_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Ringdown amplitude C3 for 20 mode (use same as 22)."""
     return rd_amp_c3_22(eta, s1z, s2z)
 
@@ -3675,13 +3852,17 @@ def rd_amp_c3_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def tshift_22(eta: float, s1z: float, s2z: float) -> float:
+def tshift_22(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 22 mode (reference mode, always 0)."""
     return 0.0
 
 
 @jax.jit
-def tshift_21(eta: float, s1z: float, s2z: float) -> float:
+def tshift_21(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 21 mode relative to 22 mode."""
     S = sTotR(eta, s1z, s2z)
     dchi = s1z - s2z
@@ -3711,7 +3892,9 @@ def tshift_21(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def tshift_33(eta: float, s1z: float, s2z: float) -> float:
+def tshift_33(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 33 mode relative to 22 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3733,7 +3916,9 @@ def tshift_33(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def tshift_44(eta: float, s1z: float, s2z: float) -> float:
+def tshift_44(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 44 mode relative to 22 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3778,7 +3963,9 @@ def tshift_44(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def tshift_55(eta: float, s1z: float, s2z: float) -> float:
+def tshift_55(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 55 mode relative to 22 mode."""
     S = sTotR(eta, s1z, s2z)
 
@@ -3800,7 +3987,9 @@ def tshift_55(eta: float, s1z: float, s2z: float) -> float:
 
 
 @jax.jit
-def tshift_20(eta: float, s1z: float, s2z: float) -> float:
+def tshift_20(
+    eta: float | Array, s1z: float | Array, s2z: float | Array
+) -> float | Array:
     """Time shift for 20 mode (same as 22, returns 0)."""
     return 0.0
 
@@ -3811,16 +4000,25 @@ def tshift_20(eta: float, s1z: float, s2z: float) -> float:
 
 
 def _mode_switch_3arg(
-    eta: float, s1z: float, s2z: float, mode: int, f20, f21, f22, f33, f44, f55
+    eta: float | Array,
+    s1z: float | Array,
+    s2z: float | Array,
+    mode: int | Array,
+    f20,
+    f21,
+    f22,
+    f33,
+    f44,
+    f55,
 ):
     """
     Helper to dispatch mode-dependent fits with signature (eta, s1z, s2z).
 
     Parameters
     ----------
-    eta : float
+    eta : float | Array
         Symmetric mass ratio.
-    s1z, s2z : float
+    s1z, s2z : float | Array
         Dimensionless z-component spins.
     mode : int
         Mode key (20, 21, 22, 33, 44, 55).
@@ -3878,13 +4076,15 @@ def _mode_switch_3arg(
     )
 
 
-def _mode_switch_1arg(af: float, mode: int, f20, f21, f22, f33, f44, f55):
+def _mode_switch_1arg(
+    af: float | Array, mode: int | Array, f20, f21, f22, f33, f44, f55
+):
     """
     Helper to dispatch mode-dependent fits with signature (af).
 
     Parameters
     ----------
-    af : float
+    af : float | Array
         Final spin.
     mode : int
         Mode key (20, 21, 22, 33, 44, 55).
@@ -3940,13 +4140,13 @@ def _mode_switch_1arg(af: float, mode: int, f20, f21, f22, f33, f44, f55):
     )
 
 
-def fdamp(af: float, mode: int) -> float:
+def fdamp(af: float | Array, mode: int | Array) -> float | Array:
     """
     Damping frequency for given mode (fundamental).
 
     Parameters
     ----------
-    af : float
+    af : float | Array
         Final dimensionless spin.
     mode : int
         Mode key (22, 21, 33, 44, 55, 20).
@@ -3961,13 +4161,13 @@ def fdamp(af: float, mode: int) -> float:
     )
 
 
-def fdamp_n2(af: float, mode: int) -> float:
+def fdamp_n2(af: float | Array, mode: int | Array) -> float | Array:
     """
     Second overtone damping frequency for given mode.
 
     Parameters
     ----------
-    af : float
+    af : float | Array
         Final dimensionless spin.
     mode : int
         Mode key (22, 21, 33, 44, 55, 20).
@@ -3992,7 +4192,9 @@ def fdamp_n2(af: float, mode: int) -> float:
 # NOTE: intermediate_freq_cp1 is now defined earlier in the file with exact phenomxpy formulas
 
 
-def intermediate_freq_cp2(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def intermediate_freq_cp2(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """DEPRECATED: Intermediate frequency collocation point 2 for given mode.
 
     NOTE: phenomxpy does not have CP2 intermediate functions.
@@ -4012,7 +4214,9 @@ def intermediate_freq_cp2(eta: float, s1z: float, s2z: float, mode: int) -> floa
     )
 
 
-def peak_freq(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def peak_freq(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Peak frequency for given mode."""
     return _mode_switch_3arg(
         eta,
@@ -4028,7 +4232,9 @@ def peak_freq(eta: float, s1z: float, s2z: float, mode: int) -> float:
     )
 
 
-def rd_freq_d2(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def rd_freq_d2(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Ringdown frequency D2 for given mode."""
     return _mode_switch_3arg(
         eta,
@@ -4044,7 +4250,9 @@ def rd_freq_d2(eta: float, s1z: float, s2z: float, mode: int) -> float:
     )
 
 
-def rd_freq_d3(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def rd_freq_d3(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Ringdown frequency D3 for given mode."""
     return _mode_switch_3arg(
         eta,
@@ -4063,7 +4271,9 @@ def rd_freq_d3(eta: float, s1z: float, s2z: float, mode: int) -> float:
 # NOTE: intermediate_amp_cp1 is now defined earlier in the file with exact phenomxpy formulas
 
 
-def intermediate_amp_cp2(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def intermediate_amp_cp2(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """DEPRECATED: Intermediate amplitude collocation point 2 for given mode.
 
     NOTE: phenomxpy does not have CP2 intermediate functions.
@@ -4083,7 +4293,9 @@ def intermediate_amp_cp2(eta: float, s1z: float, s2z: float, mode: int) -> float
     )
 
 
-def peak_amp(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def peak_amp(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Peak amplitude for given mode."""
     return _mode_switch_3arg(
         eta,
@@ -4099,7 +4311,9 @@ def peak_amp(eta: float, s1z: float, s2z: float, mode: int) -> float:
     )
 
 
-def rd_amp_c3(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def rd_amp_c3(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Ringdown amplitude C3 for given mode."""
     return _mode_switch_3arg(
         eta,
@@ -4115,7 +4329,9 @@ def rd_amp_c3(eta: float, s1z: float, s2z: float, mode: int) -> float:
     )
 
 
-def tshift(eta: float, s1z: float, s2z: float, mode: int) -> float:
+def tshift(
+    eta: float | Array, s1z: float | Array, s2z: float | Array, mode: int | Array
+) -> float | Array:
     """Time shift for given mode."""
     return _mode_switch_3arg(
         eta,

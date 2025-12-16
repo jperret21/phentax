@@ -1,0 +1,1132 @@
+# Copyright (C) 2025 Alessandro Santini
+# SPDX-License-Identifier: MIT
+"""
+Phase and omega coefficient computation for IMRPhenomT(HM).
+
+This module implements the pPhase class functionality from phenomxpy,
+computing all the coefficients needed for the IMR omega and phase ansatze.
+"""
+
+from typing import NamedTuple, Tuple
+
+import jax
+import jax.numpy as jnp
+import optimistix as optx
+from jaxtyping import Array
+
+from . import collocation, fits, pn_coeffs
+from .internals import DerivedParams
+
+
+class PhaseCoeffs(NamedTuple):
+    """
+    All phase/omega coefficients for a given mode.
+
+    Contains PN coefficients, pseudo-PN coefficients, ringdown parameters,
+    and intermediate region coefficients.
+    """
+
+    mode: int | Array
+
+    # PN coefficients (TaylorT3)
+    omega1PN: float | Array
+    omega1halfPN: float | Array
+    omega2PN: float | Array
+    omega2halfPN: float | Array
+    omega3PN: float | Array
+    omega3halfPN: float | Array
+
+    # Pseudo-PN coefficients (6 coefficients for omega inspiral)
+    omegaInspC1: float | Array
+    omegaInspC2: float | Array
+    omegaInspC3: float | Array
+    omegaInspC4: float | Array
+    omegaInspC5: float | Array
+    omegaInspC6: float | Array
+
+    # Ringdown quantities
+    omegaRING: float | Array  # 2*pi*fring
+    alpha1RD: float | Array  # 2*pi*fdamp
+    omegaRING_prec: float | Array  # For precessing case
+
+    # Peak frequency
+    omegaPeak: float | Array
+
+    # Ringdown ansatz coefficients
+    c1: float | Array
+    c2: float | Array
+    c3: float | Array
+    c4: float | Array
+    c1_prec: float | Array
+
+    # int | Arrayermediate ansatz coefficients
+    omegaMergerC1: float | Array
+    omegaMergerC2: float | Array
+    omegaMergerC3: float | Array
+
+    # int | Arrayermediate region values
+    omegaCut: float | Array  # omega at inspiral cut
+    domegaCut: float | Array  # domega/dt at inspiral cut
+    domegaPeak: float | Array  # domega/dt at peak
+
+    # Times and cuts
+    inspiral_cut: float | Array  # tCut: transition time inspiral -> intermediate
+    ringdown_cut: float | Array  # = 0 (peak time)
+    tt0: float | Array  # t0 from fit
+    tEarly: float | Array  # Early time for phase offset
+
+    omegaCutPNAMP: (
+        float | Array
+    )  # Omega contribution from complex amplitude at transtion time ``pAmp.inspiral_cut``.
+    phiCutPNAMP: (
+        float | Array
+    )  # Phase contribution from complex amplitude at transtion time ``pAmp.inspiral_cut``.
+
+    # Phase continuity offsets
+    phOffInsp: float | Array
+    phOffMerger: float | Array
+    phOffRD: float | Array
+
+    # phase offset for different modes
+    phoff: float | Array
+    # reference phase at t=tref
+    phiref0: float | Array
+
+    # Powers of 5 for phase computation
+    powers_of_5: jnp.ndarray
+
+
+def _compute_pn_and_pseudo_pn(
+    Dparams: DerivedParams,
+) -> Tuple[
+    jnp.ndarray,
+    collocation.OmegaPseudoPNCoeffs,
+    float | Array,
+    float | Array,
+    jnp.ndarray,
+]:
+    """
+    Compute PN and pseudo-PN coefficients, which are common to all modes.
+    """
+    # Powers of 5 for phase computation
+    base = jnp.power(5.0, 1.0 / 8.0)
+    powers_of_5 = jnp.array(
+        [1.0, base, base**2, base**3, base**4, base**5, base**6, base**7]
+    )
+
+    # PN Coefficients
+    omega_pn = pn_coeffs.compute_omega_pn_coeffs(
+        Dparams.eta, Dparams.chi1, Dparams.chi2, Dparams.delta, Dparams.m1, Dparams.m2
+    )
+    omega_pn_array = jnp.array(
+        [
+            omega_pn.omega1PN,
+            omega_pn.omega1halfPN,
+            omega_pn.omega2PN,
+            omega_pn.omega2halfPN,
+            omega_pn.omega3PN,
+            omega_pn.omega3halfPN,
+        ]
+    )
+
+    # Collocation points and pseudo-PN coefficients
+    omega_cp_values, tt0, tEarly = collocation.compute_omega_collocation_points(
+        Dparams.eta, Dparams.chi1, Dparams.chi2, omega_pn_array
+    )
+
+    pseudo_pn = collocation.compute_omega_pseudo_pn_coeffs(
+        omega_pn_array, omega_cp_values
+    )
+
+    return omega_pn_array, pseudo_pn, tt0, tEarly, powers_of_5
+
+
+@jax.jit
+def compute_phase_coeffs_22(
+    Dparams: DerivedParams,
+) -> PhaseCoeffs:
+    """
+    Compute all phase/omega coefficients for the 22 mode.
+    """
+    # Common coefficients
+    omega_pn_array, pseudo_pn, tt0, tEarly, powers_of_5 = _compute_pn_and_pseudo_pn(
+        Dparams
+    )
+
+    # Final state
+    af = fits.final_spin_2017(Dparams.eta, Dparams.chi1, Dparams.chi2)
+    Mfinal = fits.final_mass_2017(Dparams.eta, Dparams.chi1, Dparams.chi2)
+
+    # Ringdown quantities
+    omegaRING = 2.0 * jnp.pi * fits.fring_22(af) / Mfinal
+    alpha1RD = 2.0 * jnp.pi * fits.fdamp_22(af) / Mfinal
+    omegaRING_prec = omegaRING
+
+    omegaPeak = fits.peak_freq_22(Dparams.eta, Dparams.chi1, Dparams.chi2)
+
+    c2 = fits.rd_freq_d2_22(Dparams.eta, Dparams.chi1, Dparams.chi2)
+    c3 = fits.rd_freq_d3_22(Dparams.eta, Dparams.chi1, Dparams.chi2)
+    c4 = 0.0
+    c1 = (1.0 + c3 + c4) * (omegaRING - omegaPeak) / c2 / (c3 + 2.0 * c4)
+    c1_prec = c1
+
+    # Cuts
+    inspiral_cut = -26.982976386771437 / Dparams.eta
+    ringdown_cut = 0.0
+
+    # int | Arrayermediate region
+    pseudo_pn_array = jnp.array(
+        [
+            pseudo_pn.c1,
+            pseudo_pn.c2,
+            pseudo_pn.c3,
+            pseudo_pn.c4,
+            pseudo_pn.c5,
+            pseudo_pn.c6,
+        ]
+    )
+
+    omegaCut = _inspiral_ansatz_omega_single(
+        inspiral_cut, Dparams.eta, omega_pn_array, pseudo_pn_array
+    )
+
+    domegaCut = _inspiral_ansatz_domega(
+        inspiral_cut, Dparams.eta, omega_pn_array, pseudo_pn_array
+    )
+
+    domegaPeak = -_ringdown_ansatz_domega(0.0, c1, c2, c3, c4) / omegaRING
+
+    tcpMerger = -5.0 / (Dparams.eta * jnp.power(0.95, 8))
+    omegaMergerCP = (
+        1.0
+        - fits.intermediate_freq_cp1_22(Dparams.eta, Dparams.chi1, Dparams.chi2)
+        / omegaRING
+    )
+    omegaCutBar = 1.0 - omegaCut / omegaRING
+    domegaCut = -domegaCut / omegaRING
+
+    omegaMergerC1, omegaMergerC2, omegaMergerC3 = _solve_intermediate_omega_system(
+        alpha1RD,
+        inspiral_cut,
+        tcpMerger,
+        omegaCutBar,
+        omegaMergerCP,
+        domegaCut,
+        domegaPeak,
+        omegaPeak,
+        omegaRING,
+    )
+
+    # Phase offsets
+    thetabarini = jnp.power(Dparams.eta * (tt0 - tEarly), -1.0 / 8.0)
+    pn_phase_at_thetabarini = _pn_ansatz_phase(
+        thetabarini, Dparams.eta, powers_of_5, omega_pn_array
+    )
+    inspiral_phase_at_tEarly = _inspiral_ansatz_phase_value_22(
+        tEarly,
+        Dparams.eta,
+        powers_of_5,
+        omega_pn_array,
+        pseudo_pn_array,
+        0.0,
+    )
+    phOffInsp = pn_phase_at_thetabarini - inspiral_phase_at_tEarly
+
+    inspiral_phase_at_cut = _inspiral_ansatz_phase_value_22(
+        inspiral_cut,
+        Dparams.eta,
+        powers_of_5,
+        omega_pn_array,
+        pseudo_pn_array,
+        phOffInsp,
+    )
+
+    intermediate_phase_at_cut = _intermediate_ansatz_phase_value(
+        inspiral_cut,
+        alpha1RD,
+        omegaMergerC1,
+        omegaMergerC2,
+        omegaMergerC3,
+        omegaPeak,
+        domegaPeak,
+        omegaRING,
+        0.0,
+    )
+    phOffMerger = inspiral_phase_at_cut - intermediate_phase_at_cut
+
+    phOffRD = _intermediate_ansatz_phase_value(
+        0.0,
+        alpha1RD,
+        omegaMergerC1,
+        omegaMergerC2,
+        omegaMergerC3,
+        omegaPeak,
+        domegaPeak,
+        omegaRING,
+        phOffMerger,
+    )
+
+    PhaseCoeffs22 = PhaseCoeffs(
+        mode=22,
+        omega1PN=omega_pn_array[0],
+        omega1halfPN=omega_pn_array[1],
+        omega2PN=omega_pn_array[2],
+        omega2halfPN=omega_pn_array[3],
+        omega3PN=omega_pn_array[4],
+        omega3halfPN=omega_pn_array[5],
+        omegaInspC1=pseudo_pn.c1,
+        omegaInspC2=pseudo_pn.c2,
+        omegaInspC3=pseudo_pn.c3,
+        omegaInspC4=pseudo_pn.c4,
+        omegaInspC5=pseudo_pn.c5,
+        omegaInspC6=pseudo_pn.c6,
+        omegaRING=omegaRING,
+        alpha1RD=alpha1RD,
+        omegaRING_prec=omegaRING_prec,
+        omegaPeak=omegaPeak,
+        c1=c1,
+        c2=c2,
+        c3=c3,
+        c4=c4,
+        c1_prec=c1_prec,
+        omegaMergerC1=omegaMergerC1,
+        omegaMergerC2=omegaMergerC2,
+        omegaMergerC3=omegaMergerC3,
+        omegaCut=omegaCut,
+        domegaCut=domegaCut,
+        domegaPeak=domegaPeak,
+        inspiral_cut=inspiral_cut,
+        ringdown_cut=ringdown_cut,
+        tt0=tt0,
+        tEarly=tEarly,
+        omegaCutPNAMP=jnp.array(0.0),
+        phiCutPNAMP=jnp.array(0.0),
+        phoff=jnp.array(0.0),
+        phiref0=jnp.array(0.0),
+        phOffInsp=phOffInsp,
+        phOffMerger=phOffMerger,
+        phOffRD=phOffRD,
+        powers_of_5=powers_of_5,
+    )
+
+    phiref0 = imr_phase(Dparams.t_ref, Dparams.eta, PhaseCoeffs22)  # phase at tref
+    return PhaseCoeffs22._replace(phiref0=phiref0)
+
+
+@jax.jit
+def compute_phase_coeffs_hm(
+    Dparams: DerivedParams,
+    Phase22: PhaseCoeffs,
+    OmegaCutPNAMP: Array,
+    PhiCutPNAMP: Array,
+    mode: int | Array,
+) -> PhaseCoeffs:
+    """
+    Compute all phase/omega coefficients for HM modes.
+    """
+    # Common coefficients
+    omega_pn_array, pseudo_pn, tt0, tEarly, powers_of_5 = _compute_pn_and_pseudo_pn(
+        Dparams
+    )
+
+    m = mode % 10
+
+    # Final state
+    af = fits.final_spin_2017(Dparams.eta, Dparams.chi1, Dparams.chi2)
+    Mfinal = fits.final_mass_2017(Dparams.eta, Dparams.chi1, Dparams.chi2)
+
+    # Ringdown quantities
+    omegaRING = 2.0 * jnp.pi * fits.fring(af, mode) / Mfinal
+    alpha1RD = 2.0 * jnp.pi * fits.fdamp(af, mode) / Mfinal
+    omegaRING_prec = omegaRING
+
+    omegaPeak = fits.peak_freq(Dparams.eta, Dparams.chi1, Dparams.chi2, mode)
+
+    c2 = fits.rd_freq_d2(Dparams.eta, Dparams.chi1, Dparams.chi2, mode)
+    c3 = fits.rd_freq_d3(Dparams.eta, Dparams.chi1, Dparams.chi2, mode)
+    c4 = 0.0
+    c1 = (1.0 + c3 + c4) * (omegaRING - omegaPeak) / c2 / (c3 + 2.0 * c4)
+    c1_prec = c1
+
+    # Cuts
+    inspiral_cut = -150.0
+    ringdown_cut = 0.0
+
+    # int | Arrayermediate region
+    omegaCut = m / 2.0 * imr_omega(inspiral_cut, eta=Dparams.eta, phase_coeffs=Phase22)
+    domegaCut = compute_domega_cut(
+        inspiral_cut, Phase22.inspiral_cut, Dparams.eta, Phase22
+    )
+    domegaCut = -m / 2.0 * domegaCut / omegaRING
+
+    domegaPeak = -_ringdown_ansatz_domega(0.0, c1, c2, c3, c4) / omegaRING
+
+    tcpMerger = -25.0
+    omegaMergerCP = (
+        1.0
+        - fits.intermediate_freq_cp1(Dparams.eta, Dparams.chi1, Dparams.chi2, mode)
+        / omegaRING
+    )
+    omegaCutBar = 1.0 - (omegaCut + OmegaCutPNAMP) / omegaRING
+
+    omegaMergerC1, omegaMergerC2, omegaMergerC3 = _solve_intermediate_omega_system(
+        alpha1RD,
+        inspiral_cut,
+        tcpMerger,
+        omegaCutBar,
+        omegaMergerCP,
+        domegaCut,
+        domegaPeak,
+        omegaPeak,
+        omegaRING,
+    )
+
+    # Phase offsets
+    phOffInsp = 0.0
+    phMECOinsp = (
+        m / 2.0 * imr_phase(inspiral_cut, eta=Dparams.eta, phase_coeffs=Phase22)
+    )
+    phMECOmerger = _intermediate_ansatz_phase_value(
+        inspiral_cut,
+        alpha1RD,
+        omegaMergerC1,
+        omegaMergerC2,
+        omegaMergerC3,
+        omegaPeak,
+        domegaPeak,
+        omegaRING,
+        0.0,
+    )
+    phOffMerger = phMECOinsp - phMECOmerger
+
+    phOffRD = _intermediate_ansatz_phase_value(
+        0.0,
+        alpha1RD,
+        omegaMergerC1,
+        omegaMergerC2,
+        omegaMergerC3,
+        omegaPeak,
+        domegaPeak,
+        omegaRING,
+        phOffMerger,
+    )
+
+    phoff = _get_offset(mode)
+
+    return PhaseCoeffs(
+        mode=mode,
+        omega1PN=omega_pn_array[0],
+        omega1halfPN=omega_pn_array[1],
+        omega2PN=omega_pn_array[2],
+        omega2halfPN=omega_pn_array[3],
+        omega3PN=omega_pn_array[4],
+        omega3halfPN=omega_pn_array[5],
+        omegaInspC1=pseudo_pn.c1,
+        omegaInspC2=pseudo_pn.c2,
+        omegaInspC3=pseudo_pn.c3,
+        omegaInspC4=pseudo_pn.c4,
+        omegaInspC5=pseudo_pn.c5,
+        omegaInspC6=pseudo_pn.c6,
+        omegaRING=omegaRING,
+        alpha1RD=alpha1RD,
+        omegaRING_prec=omegaRING_prec,
+        omegaPeak=omegaPeak,
+        c1=c1,
+        c2=c2,
+        c3=c3,
+        c4=c4,
+        c1_prec=c1_prec,
+        omegaMergerC1=omegaMergerC1,
+        omegaMergerC2=omegaMergerC2,
+        omegaMergerC3=omegaMergerC3,
+        omegaCut=omegaCut,
+        domegaCut=domegaCut,
+        domegaPeak=domegaPeak,
+        inspiral_cut=inspiral_cut,
+        ringdown_cut=ringdown_cut,
+        tt0=tt0,
+        tEarly=tEarly,
+        omegaCutPNAMP=OmegaCutPNAMP,
+        phiCutPNAMP=PhiCutPNAMP,
+        phoff=phoff,
+        phiref0=Phase22.phiref0,
+        phOffInsp=phOffInsp,
+        phOffMerger=phOffMerger,
+        phOffRD=phOffRD,
+        powers_of_5=powers_of_5,
+    )
+
+
+def imr_omega(
+    time: float | Array, eta: float | Array, phase_coeffs: PhaseCoeffs
+) -> float | Array:
+    """Compute IMR omega at time using the full ansatz."""
+
+    # Prepare coefficient arrays for helper functions
+    omega_pn_coeffs = jnp.array(
+        [
+            phase_coeffs.omega1PN,
+            phase_coeffs.omega1halfPN,
+            phase_coeffs.omega2PN,
+            phase_coeffs.omega2halfPN,
+            phase_coeffs.omega3PN,
+            phase_coeffs.omega3halfPN,
+        ]
+    )
+
+    omega_pseudo_pn_coeffs = jnp.array(
+        [
+            phase_coeffs.omegaInspC1,
+            phase_coeffs.omegaInspC2,
+            phase_coeffs.omegaInspC3,
+            phase_coeffs.omegaInspC4,
+            phase_coeffs.omegaInspC5,
+            phase_coeffs.omegaInspC6,
+        ]
+    )
+
+    def _omega_scalar(t: Array) -> Array:
+        """Compute omega at a single time t."""
+
+        def _inspiral(t):
+            return _inspiral_ansatz_omega_single(
+                t,
+                eta,
+                omega_pn_coeffs,
+                omega_pseudo_pn_coeffs,
+            )
+
+        def _intermediate(t):
+            return _intermediate_ansatz_omega_single(
+                t,
+                phase_coeffs.alpha1RD,
+                phase_coeffs.omegaPeak,
+                phase_coeffs.domegaPeak,
+                phase_coeffs.omegaRING,
+                phase_coeffs.omegaMergerC1,
+                phase_coeffs.omegaMergerC2,
+                phase_coeffs.omegaMergerC3,
+            )
+
+        def _ringdown(t):
+            return _ringdown_ansatz_omega_single(
+                t,
+                phase_coeffs.c1,
+                phase_coeffs.c2,
+                phase_coeffs.c3,
+                phase_coeffs.c4,
+                phase_coeffs.omegaRING,
+            )
+
+        def _post_inspiral(t):
+            return jax.lax.cond(
+                t < phase_coeffs.ringdown_cut, _intermediate, _ringdown, operand=t
+            )
+
+        return jax.lax.cond(
+            t < phase_coeffs.inspiral_cut, _inspiral, _post_inspiral, operand=t
+        )
+
+    # Vectorize over time array
+    time = jnp.asarray(time)
+    time_shape = jnp.shape(time)
+    time_flat = jnp.reshape(time, (-1,))
+    omegas_flat = jax.vmap(_omega_scalar)(time_flat)
+    omegas = jnp.reshape(omegas_flat, time_shape)
+
+    return omegas
+
+
+def imr_phase(
+    time: float | Array,
+    eta: float | Array,
+    phase_coeffs: PhaseCoeffs,
+    phase_22: float | Array = 0.0,
+) -> Array:
+    """
+    Compute the IMRPhenomT(HM) phase at given times for a given mode.
+    """
+    # Prepare coefficient arrays for helper functions
+    omega_pn_coeffs = jnp.array(
+        [
+            phase_coeffs.omega1PN,
+            phase_coeffs.omega1halfPN,
+            phase_coeffs.omega2PN,
+            phase_coeffs.omega2halfPN,
+            phase_coeffs.omega3PN,
+            phase_coeffs.omega3halfPN,
+        ]
+    )
+
+    omega_pseudo_pn_coeffs = jnp.array(
+        [
+            phase_coeffs.omegaInspC1,
+            phase_coeffs.omegaInspC2,
+            phase_coeffs.omegaInspC3,
+            phase_coeffs.omegaInspC4,
+            phase_coeffs.omegaInspC5,
+            phase_coeffs.omegaInspC6,
+        ]
+    )
+
+    def _phase_scalar(t: Array, _phase_22: float | Array) -> Array:
+        # Define branch functions for jax.lax.cond
+        def _inspiral(t, _phase_22):
+            return _inspiral_ansatz_phase_value(
+                t,
+                eta,
+                phase_coeffs.powers_of_5,
+                omega_pn_coeffs,
+                omega_pseudo_pn_coeffs,
+                phase_coeffs.phOffInsp,
+                phase_coeffs.mode,
+                phase_22=_phase_22,
+            )
+
+        def _intermediate(t):
+            return _intermediate_ansatz_phase_value(
+                t,
+                phase_coeffs.alpha1RD,
+                phase_coeffs.omegaMergerC1,
+                phase_coeffs.omegaMergerC2,
+                phase_coeffs.omegaMergerC3,
+                phase_coeffs.omegaPeak,
+                phase_coeffs.domegaPeak,
+                phase_coeffs.omegaRING,
+                phase_coeffs.phOffMerger,
+            )
+
+        def _ringdown(t):
+            return _ringdown_ansatz_phase_value(
+                t,
+                phase_coeffs.c1_prec,
+                phase_coeffs.c2,
+                phase_coeffs.c3,
+                phase_coeffs.c4,
+                phase_coeffs.omegaRING_prec,
+                phase_coeffs.phOffRD,
+            )
+
+        def _post_inspiral(t):
+            return (
+                jax.lax.cond(
+                    t < phase_coeffs.ringdown_cut,
+                    _intermediate,
+                    _ringdown,
+                    t,
+                )
+                - phase_coeffs.phiCutPNAMP
+            )
+
+        # Use jax.lax.cond for safe branching (avoids NaNs in log(-t) for t>0)
+        return jax.lax.cond(
+            t < phase_coeffs.inspiral_cut,
+            lambda: _inspiral(t, _phase_22),
+            lambda: _post_inspiral(t),
+        )
+
+    # Vectorize over time array
+    time = jnp.asarray(time)
+    phase_22 = jnp.asarray(phase_22)
+    time_shape = jnp.shape(time)
+    time_flat = jnp.reshape(time, (-1,))
+
+    # phase_22 may be a scalar or an array; broadcast to match time_flat shape
+    if jnp.ndim(phase_22) == 0:
+        phase_22_flat = jnp.full_like(time_flat, phase_22)
+    else:
+        phase_22_flat = jnp.reshape(phase_22, (-1,))
+
+    phases_flat = jax.vmap(_phase_scalar, in_axes=(0, 0))(time_flat, phase_22_flat)
+    phases = jnp.reshape(phases_flat, time_shape)
+
+    return phases
+
+
+@jax.jit(static_argnames=("tlow_fit",))
+def get_time_of_frequency(
+    freq, eta, phase_coeffs: PhaseCoeffs, tlow_fit=False, thigh=500.0
+):
+    """Get time corresponding to a given frequency using root finding."""
+
+    tlow = -0.012 * freq ** (-2.7) if tlow_fit else -1e9
+
+    def time_of_freq(t, args):
+        time = jax.lax.cond(
+            t < phase_coeffs.inspiral_cut,
+            lambda t: t - phase_coeffs.tt0,
+            lambda t: t,
+            t,
+        )
+        omega = imr_omega(time, eta, phase_coeffs)
+        return 2 * jnp.pi * args - omega
+
+    solver = optx.Bisection(  # type: ignore
+        atol=1e-10,
+        rtol=1e-10,
+    )
+    time_root: optx.Solution = optx.root_find(
+        time_of_freq,
+        solver,
+        args=freq,
+        y0=-0.01 * freq ** (-2.7),
+        options=dict(lower=tlow, upper=thigh),
+        max_steps=1000,
+    )
+
+    return time_root.value
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+
+@jax.jit
+def compute_domega_cut(tCut, tCut_threshold, eta, Phase22):
+    """Compute domegaCut using JAX conditional."""
+
+    def inspiral_branch(t):
+        omega_pn_coefficients = jnp.array(
+            [
+                Phase22.omega1PN,
+                Phase22.omega1halfPN,
+                Phase22.omega2PN,
+                Phase22.omega2halfPN,
+                Phase22.omega3PN,
+                Phase22.omega3halfPN,
+            ]
+        )
+
+        omega_pseudo_pn_coefficients = jnp.array(
+            [
+                Phase22.omegaInspC1,
+                Phase22.omegaInspC2,
+                Phase22.omegaInspC3,
+                Phase22.omegaInspC4,
+                Phase22.omegaInspC5,
+                Phase22.omegaInspC6,
+            ]
+        )
+
+        return _inspiral_ansatz_domega(
+            t, eta, omega_pn_coefficients, omega_pseudo_pn_coefficients
+        )
+
+    def merger_branch(t):
+        arcsinh = jnp.arcsinh(Phase22.alpha1RD * t)
+        return (
+            -Phase22.omegaRING
+            / jnp.sqrt(1.0 + (Phase22.alpha1RD * t) ** 2)
+            * (
+                Phase22.domegaPeak
+                + Phase22.alpha1RD
+                * (
+                    2.0 * Phase22.omegaMergerC1 * arcsinh
+                    + 3.0 * Phase22.omegaMergerC2 * arcsinh * arcsinh
+                    + 4.0 * Phase22.omegaMergerC3 * arcsinh**3
+                )
+            )
+        )
+
+    return jax.lax.cond(tCut < tCut_threshold, inspiral_branch, merger_branch, tCut)
+
+
+@jax.jit
+def _get_offset(mode: int | Array) -> Array:
+    """Get mode-dependent offset for phase computation."""
+
+    phoff = jax.lax.cond(
+        mode == 33,
+        lambda: -jnp.pi * 0.5,
+        lambda: jax.lax.cond(
+            mode == 44,
+            lambda: jnp.pi,
+            lambda: jax.lax.cond(
+                mode == 55,
+                lambda: jnp.pi * 0.5,
+                lambda: jax.lax.cond(
+                    mode == 21,
+                    lambda: jnp.pi * 0.5,
+                    lambda: jnp.array(0.0),
+                ),
+            ),
+        ),
+    )
+
+    return phoff
+
+
+# =============================================================================
+# Helper functions for ansatz evaluation
+# =============================================================================
+
+
+@jax.jit
+def _inspiral_ansatz_omega_single(
+    time: Array,
+    eta: Array,
+    omega_pn_coeffs: jnp.ndarray,
+    omega_pseudo_pn_coeffs: jnp.ndarray,
+) -> Array:
+    """Evaluate inspiral omega ansatz at a single time."""
+    theta = jnp.power(-eta * time / 5.0, -1.0 / 8.0)
+
+    # TaylorT3 part
+    taylort3 = collocation.pn_ansatz_omega(theta, omega_pn_coeffs)
+
+    # Pseudo-PN part
+    theta8 = jnp.power(theta, 8)
+    theta9 = theta8 * theta
+    theta10 = theta9 * theta
+    theta11 = theta10 * theta
+    theta12 = theta11 * theta
+    theta13 = theta12 * theta
+
+    fac = theta * theta * theta / 8.0
+    pseudo_pn_sum = (
+        omega_pseudo_pn_coeffs[0] * theta8
+        + omega_pseudo_pn_coeffs[1] * theta9
+        + omega_pseudo_pn_coeffs[2] * theta10
+        + omega_pseudo_pn_coeffs[3] * theta11
+        + omega_pseudo_pn_coeffs[4] * theta12
+        + omega_pseudo_pn_coeffs[5] * theta13
+    )
+
+    return taylort3 + 2.0 * fac * pseudo_pn_sum
+
+
+@jax.jit
+def _intermediate_ansatz_omega_single(
+    time: Array,
+    alpha1RD: Array,
+    omegaPeak: Array,
+    domegaPeak: Array,
+    omegaRING: Array,
+    omegaMergerC1: Array,
+    omegaMergerC2: Array,
+    omegaMergerC3: Array,
+):
+    x = jnp.arcsinh(alpha1RD * time)
+    w = (
+        1
+        - omegaPeak / omegaRING
+        + x
+        * (
+            domegaPeak / alpha1RD
+            + x * (omegaMergerC1 + x * (omegaMergerC2 + x * omegaMergerC3))
+        )
+    )
+
+    return omegaRING * (1 - w)
+
+
+@jax.jit
+def _ringdown_ansatz_omega_single(
+    time: Array,
+    c1: Array,
+    c2: Array,
+    c3: Array,
+    c4: Array,
+    omegaRING: Array,
+) -> Array:
+    """Evaluate ringdown omega ansatz at a single time."""
+    expC = jnp.exp(-c2 * time)
+    expC2 = expC * expC
+    num = -c1 * c2 * (2 * c4 * expC2 + c3 * expC)
+    den = 1 + c4 * expC2 + c3 * expC
+
+    return num / den + omegaRING
+
+
+@jax.jit
+def _inspiral_ansatz_domega(
+    time: Array,
+    eta: Array,
+    omega_pn_coeffs: jnp.ndarray,
+    omega_pseudo_pn_coeffs: jnp.ndarray,
+) -> Array:
+    """Compute d(omega)/dt for inspiral ansatz at a single time."""
+    # Use JAX autodiff
+    return jax.grad(
+        lambda t: _inspiral_ansatz_omega_single(
+            t, eta, omega_pn_coeffs, omega_pseudo_pn_coeffs
+        )
+    )(time)
+
+
+@jax.jit
+def _ringdown_ansatz_domega(
+    time: Array,
+    c1: Array,
+    c2: Array,
+    c3: Array,
+    c4: Array,
+) -> Array:
+    """Compute d(omega)/dt for ringdown ansatz at a single time."""
+    expC = jnp.exp(c2 * time)
+    expC2 = expC * expC
+
+    num = c1 * c2 * c2 * expC * (4 * c4 * expC + c3 * (c4 + expC2))
+    den = c4 + expC * (c3 + expC)
+    return num / (den * den)
+
+
+@jax.jit
+def _solve_intermediate_omega_system(
+    alpha1RD: Array,
+    tCut: Array,
+    tcpMerger: Array,
+    omegaCutBar: Array,
+    omegaMergerCP: Array,
+    domegaCut: Array,
+    domegaPeak: Array,
+    omegaPeak: Array,
+    omegaRING: Array,
+) -> tuple:
+    """Solve 3x3 linear system for intermediate omega coefficients."""
+    # System from Eqs. 28, 29, 31 in arXiv:2012.11923
+
+    ascut = jnp.arcsinh(alpha1RD * tCut)
+    ascut2 = ascut * ascut
+    ascut3 = ascut * ascut2
+    ascut4 = ascut * ascut3
+
+    bascut = jnp.arcsinh(alpha1RD * tcpMerger)
+    bascut2 = bascut * bascut
+    bascut3 = bascut * bascut2
+    bascut4 = bascut * bascut3
+
+    dencut = jnp.sqrt(1.0 + tCut * tCut * alpha1RD * alpha1RD)
+
+    # Build matrix and RHS
+    matrix = jnp.zeros((3, 3))
+    B = jnp.zeros(3)
+
+    # Row 0: omega at tCut
+    B = B.at[0].set(
+        omegaCutBar - (1.0 - omegaPeak / omegaRING) - (domegaPeak / alpha1RD) * ascut
+    )
+    matrix = matrix.at[0, 0].set(ascut2)
+    matrix = matrix.at[0, 1].set(ascut3)
+    matrix = matrix.at[0, 2].set(ascut4)
+
+    # Row 1: omega at tcpMerger
+    B = B.at[1].set(
+        omegaMergerCP - (1.0 - omegaPeak / omegaRING) - (domegaPeak / alpha1RD) * bascut
+    )
+    matrix = matrix.at[1, 0].set(bascut2)
+    matrix = matrix.at[1, 1].set(bascut3)
+    matrix = matrix.at[1, 2].set(bascut4)
+
+    # Row 2: derivative at tCut
+    B = B.at[2].set(domegaCut - domegaPeak / dencut)
+    matrix = matrix.at[2, 0].set(2.0 * alpha1RD * ascut / dencut)
+    matrix = matrix.at[2, 1].set(3.0 * alpha1RD * ascut2 / dencut)
+    matrix = matrix.at[2, 2].set(4.0 * alpha1RD * ascut3 / dencut)
+
+    # Solve
+    solution = jnp.linalg.solve(matrix, B)
+
+    return solution[0], solution[1], solution[2]
+
+
+@jax.jit
+def _pn_ansatz_phase(
+    thetabar: Array,
+    eta: Array,
+    powers_of_5: jnp.ndarray,
+    omega_pn_coeffs: jnp.ndarray,
+) -> Array:
+    """Evaluate PN ansatz phase at thetabar."""
+    # This is the integration of the PN omega ansatz
+    # From phenomxpy numba_pn_ansatz_22_phase
+    thetabar = thetabar * powers_of_5[1]
+    thetabar2 = thetabar * thetabar
+    thetabar3 = thetabar * thetabar2
+    thetabar4 = thetabar * thetabar3
+    thetabar5 = thetabar * thetabar4
+    thetabar6 = thetabar * thetabar5
+    thetabar7 = thetabar * thetabar6
+    logthetabar = jnp.log(thetabar)
+
+    aux = (
+        1
+        / eta
+        / thetabar5
+        * (
+            -168
+            - 280 * omega_pn_coeffs[0] * thetabar2
+            - 420 * omega_pn_coeffs[1] * thetabar3
+            - 840 * omega_pn_coeffs[2] * thetabar4
+            + 840 * omega_pn_coeffs[3] * (logthetabar - 0.125 * jnp.log(5)) * thetabar5
+            - 321 * thetabar6
+            + 840 * omega_pn_coeffs[4] * thetabar6
+            + 321 * logthetabar * thetabar6
+            + 420 * omega_pn_coeffs[5] * thetabar7
+        )
+    ) / 84.0
+
+    return aux
+
+
+@jax.jit
+def _inspiral_ansatz_phase_value_22(
+    time: Array,
+    eta: Array,
+    powers_of_5: jnp.ndarray,
+    omega_pn_coeffs: jnp.ndarray,
+    omega_pseudo_pn_coeffs: jnp.ndarray,
+    phOffInsp: Array,
+) -> Array:
+    """Evaluate inspiral ansatz phase at a single time."""
+
+    thetabar = jnp.power(-eta * time, -1.0 / 8.0)
+    thetabar2 = thetabar * thetabar
+    thetabar3 = thetabar * thetabar2
+    thetabar4 = thetabar * thetabar3
+    thetabar5 = thetabar * thetabar4
+    thetabar6 = thetabar * thetabar5
+    thetabar7 = thetabar * thetabar6
+
+    logmtime = jnp.log(-time)
+    log_theta_bar = jnp.log(jnp.power(5, 0.125)) - 0.125 * (jnp.log(eta) + logmtime)
+
+    aux = (
+        -(
+            1
+            / powers_of_5[5]
+            / (eta * eta)
+            / time
+            / thetabar7
+            * (
+                3 * (-107 + 280 * omega_pn_coeffs[4]) * powers_of_5[6]
+                + 321 * log_theta_bar * powers_of_5[6]
+                + 420 * omega_pn_coeffs[5] * thetabar * powers_of_5[7]
+                + 56 * (25 * omega_pseudo_pn_coeffs[0] + 3 * eta * time) * thetabar2
+                + 1050 * omega_pseudo_pn_coeffs[1] * powers_of_5[1] * thetabar3
+                + 280
+                * (3 * omega_pseudo_pn_coeffs[2] + eta * omega_pn_coeffs[0] * time)
+                * powers_of_5[2]
+                * thetabar4
+                + 140
+                * (5 * omega_pseudo_pn_coeffs[3] + 3 * eta * omega_pn_coeffs[1] * time)
+                * powers_of_5[3]
+                * thetabar5
+                + 120
+                * (5 * omega_pseudo_pn_coeffs[4] + 7 * eta * omega_pn_coeffs[2] * time)
+                * powers_of_5[4]
+                * thetabar6
+                + 525 * omega_pseudo_pn_coeffs[5] * powers_of_5[5] * thetabar7
+                + 105
+                * eta
+                * omega_pn_coeffs[3]
+                * time
+                * logmtime
+                * powers_of_5[5]
+                * thetabar7
+            )
+        )
+        / 84.0
+    )
+
+    return aux + phOffInsp
+
+
+@jax.jit
+def _inspiral_ansatz_phase_hm(
+    phase_22: Array,
+    mode: int | Array,
+):
+    """Compute inspiral ansatz phase for HM modes based on the 22 mode phase."""
+    m = mode % 10
+    return (m / 2.0) * phase_22
+
+
+def _inspiral_ansatz_phase_value(
+    time: Array,
+    eta: Array,
+    powers_of_5: jnp.ndarray,
+    omega_pn_coeffs: jnp.ndarray,
+    omega_pseudo_pn_coeffs: jnp.ndarray,
+    phOffInsp: Array,
+    mode: int | Array,
+    phase_22: float | Array = 0.0,
+) -> Array:
+    """Evaluate inspiral ansatz phase at a single time for given mode."""
+
+    phase = jax.lax.cond(
+        mode == 22,
+        lambda: _inspiral_ansatz_phase_value_22(
+            time,
+            eta,
+            powers_of_5,
+            omega_pn_coeffs,
+            omega_pseudo_pn_coeffs,
+            phOffInsp,
+        ),
+        lambda: _inspiral_ansatz_phase_hm(
+            phase_22,
+            mode,
+        ),
+    )
+    return phase
+
+
+@jax.jit
+def _intermediate_ansatz_phase_value(
+    time: Array,
+    alpha1RD: Array,
+    omegaMergerC1: Array,
+    omegaMergerC2: Array,
+    omegaMergerC3: Array,
+    omegaPeak: Array,
+    domegaPeak: Array,
+    omegaRING: Array,
+    phOffMerger: Array,
+) -> Array:
+    """Evaluate intermediate ansatz phase at a single time."""
+    x = jnp.arcsinh(alpha1RD * time)
+    x2 = x * x
+    x3 = x * x2
+    x4 = x * x3
+    term1 = jnp.sqrt(1.0 + (alpha1RD * alpha1RD) * time * time)
+
+    aux = omegaRING * time * (
+        1.0
+        - (
+            2.0 * omegaMergerC1
+            + 24.0 * omegaMergerC3
+            + (6.0 * omegaMergerC2 + domegaPeak / alpha1RD) * x
+            + (1.0 - omegaPeak / omegaRING)
+            + (omegaMergerC1 + 12.0 * omegaMergerC3) * x2
+            + omegaMergerC2 * x3
+            + omegaMergerC3 * x4
+        )
+    ) - (omegaRING / alpha1RD) * term1 * (
+        -domegaPeak / alpha1RD
+        - 6.0 * omegaMergerC2
+        - x * (2.0 * omegaMergerC1 + 24.0 * omegaMergerC3)
+        - 3.0 * omegaMergerC2 * x2
+        - 4.0 * omegaMergerC3 * x3
+    )
+
+    return aux + phOffMerger
+
+
+@jax.jit
+def _ringdown_ansatz_phase_value(
+    time: Array,
+    c1_prec: Array,
+    c2: Array,
+    c3: Array,
+    c4: Array,
+    omegaRING_prec: Array,
+    phOffRD: Array,
+) -> Array:
+    """Evaluate ringdown ansatz phase at a single time."""
+    expC = jnp.exp(-c2 * time)
+    num = 1 + c3 * expC + c4 * expC * expC
+    den = 1 + c3 + c4
+    aux = jnp.log(num / den)
+    return c1_prec * aux + omegaRING_prec * time + phOffRD
