@@ -8,6 +8,7 @@ enabling float64 precision by default and providing platform controls.
 """
 
 import logging
+import sys
 
 import jax
 
@@ -32,22 +33,39 @@ def configure_jax(enable_x64: bool = True, platform: str | None = None) -> None:
 
 
 # Set up logging
-def setup_logging(level: int = logging.INFO) -> logging.Logger:
+# Set level
+def setup_logging(name: str = "phentax", level: str = "INFO") -> logging.Logger:
     """
     Set up logging for the phentax package.
-
     Parameters
     ----------
-    level : int, default logging.INFO
-        Logging level.
+    name : str, default "phentax"
+        Name of the logger.
+    level : str, default "INFO"
+        Logging level as a string (e.g., "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL").
+    Returns
+    -------
+    logging.Logger
+        Configured logger instance.
     """
-    logger = logging.getLogger("phentax")
-    logger.setLevel(level)
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    logger = logging.getLogger(name)
+    numeric_level = getattr(logging, level.upper(), logging.INFO)
+    logger.setLevel(numeric_level)
+
+    # Only configure if this logger hasn't been configured yet
+    if not logger.handlers:
+        # Create handler
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(numeric_level)
+
+        # Create formatter
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        handler.setFormatter(formatter)
+
+        # Add handler to logger
+        logger.addHandler(handler)
+
     return logger

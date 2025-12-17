@@ -1,13 +1,31 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 """
+Utility
+================================
+
 Utility functions for phentax.
 
 Contains helper functions for mass ratios, spins, unit conversions,
 and spin-weighted spherical harmonics, all implemented in pure JAX.
+
+... autosummary::
+    m1ofeta
+    m2ofeta
+    qofeta
+    eta_from_q
+    check_equal_bhs
+    chi_eff
+    sTotR
+    hz_to_mf
+    mf_to_hz
+    second_to_mass
+    mass_to_second
+    amp_nrto_si
+    mode_to_lm
+    mode_to_int
 """
 
-from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -199,7 +217,7 @@ def sTotR(
 
 
 @jax.jit
-def hz_to_mf(f_hz: float | Array, total_mass: float | Array) -> float | Array:
+def hz_to_mass(f_hz: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert frequency from Hz to dimensionless units (Mf).
 
@@ -219,7 +237,7 @@ def hz_to_mf(f_hz: float | Array, total_mass: float | Array) -> float | Array:
 
 
 @jax.jit
-def mf_to_hz(mf: float | Array, total_mass: float | Array) -> float | Array:
+def mass_to_hz(mf: float | Array, total_mass: float | Array) -> float | Array:
     """
     Convert frequency from dimensionless units (Mf) to Hz.
 
@@ -279,7 +297,7 @@ def mass_to_second(t_m: float | Array, total_mass: float | Array) -> float | Arr
 
 
 @jax.jit
-def amp_nrto_si(
+def amp_nr_to_si(
     h_nr: jnp.ndarray,
     distance_mpc: float | Array,
     total_mass: float | Array,
@@ -313,6 +331,28 @@ def amp_nrto_si(
 # =============================================================================
 
 
+@jax.jit
+def mode_to_lm(mode: Array) -> tuple[Array, Array]:
+    """
+    Convert integer mode key to (ell, m) mode indices.
+    Assumes positive m modes.
+
+    Parameters
+    ----------
+    mode : int | Array
+        Integer key: 10*ell + |m| for positive m modes.
+
+    Returns
+    -------
+    tuple of Array
+        (ell, m) mode indices.
+    """
+    ell = mode // 10
+    m = mode % 10
+
+    return ell, m
+
+
 def mode_to_int(ell: int, emm: int) -> int:
     """
     Convert (ell, m) mode indices to integer key.
@@ -330,298 +370,3 @@ def mode_to_int(ell: int, emm: int) -> int:
         Integer key: 10*ell + |m| for positive m modes.
     """
     return 10 * ell + abs(emm)
-
-
-# =============================================================================
-# Spin-weighted spherical harmonics
-# =============================================================================
-
-
-@partial(jax.jit, static_argnums=(2, 3, 4))
-def spin_weighted_spherical_harmonic(
-    theta: float,
-    phi: float,
-    s: int = -2,
-    ell: int = 2,
-    emm: int = 2,
-) -> jnp.ndarray:
-    """
-    Compute spin-weighted spherical harmonic Y_{s,ell,m}(theta, phi).
-
-    Uses explicit formulas for s=-2 harmonics needed for gravitational waves.
-
-    Parameters
-    ----------
-    theta : float
-        Polar angle (inclination) in radians.
-    phi : float
-        Azimuthal angle in radians.
-    s : int, default -2
-        Spin weight (must be -2 for GW).
-    ell : int, default 2
-        Orbital angular momentum quantum number.
-    emm : int, default 2
-        Azimuthal quantum number.
-
-    Returns
-    -------
-    jnp.ndarray
-        Value of the spin-weighted spherical harmonic.
-    """
-    # For gravitational waves we only need s=-2
-    # Using explicit formulas from LAL
-
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    cos_half = jnp.cos(theta / 2)
-    sin_half = jnp.sin(theta / 2)
-
-    # Compute the angular part based on (ell, m)
-    # All functions return float for consistency with lax.switch
-    def ylm_22():
-        return jnp.sqrt(5.0 / (64.0 * jnp.pi)) * (1 + cos_theta) ** 2
-
-    def ylm_2m2():
-        return jnp.sqrt(5.0 / (64.0 * jnp.pi)) * (1 - cos_theta) ** 2
-
-    def ylm_21():
-        return jnp.sqrt(5.0 / (16.0 * jnp.pi)) * sin_theta * (1 + cos_theta)
-
-    def ylm_2m1():
-        return jnp.sqrt(5.0 / (16.0 * jnp.pi)) * sin_theta * (1 - cos_theta)
-
-    def ylm_20():
-        return jnp.sqrt(15.0 / (32.0 * jnp.pi)) * sin_theta**2
-
-    def ylm_33():
-        return -jnp.sqrt(21.0 / (128.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta
-
-    def ylm_3m3():
-        return jnp.sqrt(21.0 / (128.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta
-
-    def ylm_32():
-        return (
-            jnp.sqrt(7.0 / (64.0 * jnp.pi))
-            * (2 + 3 * cos_theta)
-            * (1 + cos_theta)
-            * sin_theta
-        )
-
-    def ylm_3m2():
-        return (
-            jnp.sqrt(7.0 / (64.0 * jnp.pi))
-            * (2 - 3 * cos_theta)
-            * (1 - cos_theta)
-            * sin_theta
-        )
-
-    def ylm_31():
-        return (
-            jnp.sqrt(35.0 / (128.0 * jnp.pi))
-            * (1 + cos_theta)
-            * (1 - 3 * cos_theta + 4 * cos_theta**2)
-            * sin_theta
-            / (1 + cos_theta + 1e-30)
-        )
-
-    def ylm_3m1():
-        return (
-            -jnp.sqrt(35.0 / (128.0 * jnp.pi))
-            * (1 - cos_theta)
-            * (1 + 3 * cos_theta + 4 * cos_theta**2)
-            * sin_theta
-            / (1 - cos_theta + 1e-30)
-        )
-
-    def ylm_44():
-        return (
-            3 * jnp.sqrt(7.0 / (128.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta**2
-        )
-
-    def ylm_4m4():
-        return (
-            3 * jnp.sqrt(7.0 / (128.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta**2
-        )
-
-    def ylm_55():
-        return (
-            -jnp.sqrt(330.0 / (1024.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta**3
-        )
-
-    def ylm_5m5():
-        return jnp.sqrt(330.0 / (1024.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta**3
-
-    def ylm_default():
-        return 0.0  # Return float, same as other branches
-
-    # Use Wigner d-matrix based formula for s=-2 spherical harmonics
-    # For now, implement explicit cases for modes we support
-    mode_key = 10 * ell + emm
-
-    # Select the appropriate angular function
-    angular = lax.switch(
-        mode_key + 55,  # Offset to make all indices non-negative
-        [
-            ylm_5m5,  # -55 + 55 = 0
-            *[ylm_default] * 10,
-            ylm_4m4,  # -44 + 55 = 11
-            *[ylm_default] * 10,
-            ylm_3m3,  # -33 + 55 = 22
-            ylm_3m2,  # -32 + 55 = 23
-            ylm_3m1,  # -31 + 55 = 24
-            *[ylm_default] * 6,
-            ylm_2m2,  # -22 + 55 = 33
-            ylm_2m1,  # -21 + 55 = 34
-            ylm_20,  # -20 + 55 = 35 (20 mode)
-            *[ylm_default] * 40,
-            ylm_20,  # 20 + 55 = 75
-            ylm_21,  # 21 + 55 = 76
-            ylm_22,  # 22 + 55 = 77
-            *[ylm_default] * 8,
-            ylm_31,  # 31 + 55 = 86
-            ylm_32,  # 32 + 55 = 87
-            ylm_33,  # 33 + 55 = 88
-            *[ylm_default] * 10,
-            ylm_44,  # 44 + 55 = 99
-            *[ylm_default] * 10,
-            ylm_55,  # 55 + 55 = 110
-        ],
-    )
-
-    # Add the azimuthal phase
-    return angular * jnp.exp(1j * emm * phi)
-
-
-# Simpler implementation using conditionals (fallback)
-@jax.jit
-def _swsh_22(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,2,2}."""
-    cos_theta = jnp.cos(theta)
-    angular = jnp.sqrt(5.0 / (64.0 * jnp.pi)) * (1 + cos_theta) ** 2
-    return angular * jnp.exp(2j * phi)
-
-
-@jax.jit
-def _swsh_2m2(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,2,-2}."""
-    cos_theta = jnp.cos(theta)
-    angular = jnp.sqrt(5.0 / (64.0 * jnp.pi)) * (1 - cos_theta) ** 2
-    return angular * jnp.exp(-2j * phi)
-
-
-@jax.jit
-def _swsh_21(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,2,1}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = jnp.sqrt(5.0 / (16.0 * jnp.pi)) * sin_theta * (1 + cos_theta)
-    return angular * jnp.exp(1j * phi)
-
-
-@jax.jit
-def _swsh_2m1(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,2,-1}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = jnp.sqrt(5.0 / (16.0 * jnp.pi)) * sin_theta * (1 - cos_theta)
-    return angular * jnp.exp(-1j * phi)
-
-
-@jax.jit
-def _swsh_20(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,2,0}."""
-    sin_theta = jnp.sin(theta)
-    angular = jnp.sqrt(15.0 / (32.0 * jnp.pi)) * sin_theta**2
-    return angular  # exp(0) = 1
-
-
-@jax.jit
-def _swsh_33(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,3,3}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = -jnp.sqrt(21.0 / (128.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta
-    return angular * jnp.exp(3j * phi)
-
-
-@jax.jit
-def _swsh_3m3(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,3,-3}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = jnp.sqrt(21.0 / (128.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta
-    return angular * jnp.exp(-3j * phi)
-
-
-@jax.jit
-def _swsh_44(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,4,4}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = 3 * jnp.sqrt(7.0 / (128.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta**2
-    return angular * jnp.exp(4j * phi)
-
-
-@jax.jit
-def _swsh_4m4(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,4,-4}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = 3 * jnp.sqrt(7.0 / (128.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta**2
-    return angular * jnp.exp(-4j * phi)
-
-
-@jax.jit
-def _swsh_55(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,5,5}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = -jnp.sqrt(330.0 / (1024.0 * jnp.pi)) * (1 + cos_theta) ** 2 * sin_theta**3
-    return angular * jnp.exp(5j * phi)
-
-
-@jax.jit
-def _swsh_5m5(theta: float, phi: float) -> jnp.ndarray:
-    """Spin-weighted spherical harmonic Y_{-2,5,-5}."""
-    cos_theta = jnp.cos(theta)
-    sin_theta = jnp.sin(theta)
-    angular = jnp.sqrt(330.0 / (1024.0 * jnp.pi)) * (1 - cos_theta) ** 2 * sin_theta**3
-    return angular * jnp.exp(-5j * phi)
-
-
-# Dictionary-style lookup for spherical harmonics
-_SWSH_FUNCS = {
-    (2, 2): _swsh_22,
-    (2, -2): _swsh_2m2,
-    (2, 1): _swsh_21,
-    (2, -1): _swsh_2m1,
-    (2, 0): _swsh_20,
-    (3, 3): _swsh_33,
-    (3, -3): _swsh_3m3,
-    (4, 4): _swsh_44,
-    (4, -4): _swsh_4m4,
-    (5, 5): _swsh_55,
-    (5, -5): _swsh_5m5,
-}
-
-
-def get_swsh(ell: int, emm: int):
-    """
-    Get the spin-weighted spherical harmonic function for mode (ell, m).
-
-    Parameters
-    ----------
-    ell : int
-        Orbital angular momentum quantum number.
-    emm : int
-        Azimuthal quantum number.
-
-    Returns
-    -------
-    Callable
-        Function swsh(theta, phi) -> jnp.ndarray.
-    """
-    key = (ell, emm)
-    if key not in _SWSH_FUNCS:
-        raise ValueError(f"Mode ({ell}, {emm}) not implemented")
-    return _SWSH_FUNCS[key]

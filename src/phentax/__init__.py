@@ -1,4 +1,4 @@
-# Copyright (C) 2024 Alessandro Santini
+# Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 """
 phentax: JAX implementation of IMRPhenomT(HM) gravitational waveform model.
@@ -14,6 +14,6 @@ generation for compact binary coalescences using JAX.
 # configure_jax()
 
 # Data structures
-from . import core, utils
+from . import core, utils, waveform
 
 __version__ = "0.1.0"

@@ -630,6 +630,7 @@ def compute_amplitude_coeffs_hm(
     )
 
 
+@jax.jit
 def imr_amplitude(
     time: Array,
     eta: Array,

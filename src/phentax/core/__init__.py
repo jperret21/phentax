@@ -9,5 +9,11 @@ from .amplitude import (
     AmplitudeCoeffs,
     compute_amplitude_coeffs_22,
     compute_amplitude_coeffs_hm,
+    imr_amplitude,
 )
-from .phase import PhaseCoeffs, compute_phase_coeffs_22, compute_phase_coeffs_hm
+from .phase import (
+    PhaseCoeffs,
+    compute_phase_coeffs_22,
+    compute_phase_coeffs_hm,
+    imr_phase,
+)

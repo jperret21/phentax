@@ -16,6 +16,7 @@ dependencies = [
     "mypy>=1.19.0",
     "optimistix>=0.0.11",
     "phenomxpy>=0.1.1",
+    "pylint>=4.0.4",
     "pytest>=9.0.2",
     "scienceplots>=2.2.0",
     "scipy>=1.16.3",

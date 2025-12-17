@@ -14,6 +14,8 @@ import jax.numpy as jnp
 import optimistix as optx
 from jaxtyping import Array
 
+jax.config.update("jax_enable_x64", True)
+
 from . import collocation, fits, pn_coeffs
 from .internals import DerivedParams
 
@@ -144,9 +146,19 @@ def _compute_pn_and_pseudo_pn(
 @jax.jit
 def compute_phase_coeffs_22(
     Dparams: DerivedParams,
-) -> PhaseCoeffs:
+) -> tuple[DerivedParams, PhaseCoeffs]:
     """
     Compute all phase/omega coefficients for the 22 mode.
+
+    Parameters
+    ----------
+    Dparams : DerivedParams
+        Derived parameters for the waveform.
+
+    Returns
+    -------
+    tuple[DerivedParams, PhaseCoeffs]
+        Updated derived parameters and phase coefficients for mode 22.
     """
     # Common coefficients
     omega_pn_array, pseudo_pn, tt0, tEarly, powers_of_5 = _compute_pn_and_pseudo_pn(
@@ -309,8 +321,38 @@ def compute_phase_coeffs_22(
         powers_of_5=powers_of_5,
     )
 
-    phiref0 = imr_phase(Dparams.t_ref, Dparams.eta, PhaseCoeffs22)  # phase at tref
-    return PhaseCoeffs22._replace(phiref0=phiref0)
+    def _compute_min(_):
+        return get_time_of_frequency(
+            Dparams.Mf_min, Dparams.eta, PhaseCoeffs22, Dparams.t_low
+        )
+
+    def _use_existing_min(_):
+        return Dparams.Mt_min
+
+    # This works inside vmap because isnan returns a boolean tracer
+    _Mt_min = jax.lax.cond(
+        jnp.isnan(Dparams.Mt_min), _compute_min, _use_existing_min, operand=None
+    )
+
+    def _compute_ref(_):
+        return get_time_of_frequency(
+            Dparams.Mf_ref, Dparams.eta, PhaseCoeffs22, Dparams.t_low
+        )
+
+    def _use_existing_ref(_):
+        return Dparams.Mt_ref
+
+    # This works inside vmap because isnan returns a boolean tracer
+    _Mt_ref = jax.lax.cond(
+        jnp.isnan(Dparams.Mt_ref), _compute_ref, _use_existing_ref, operand=None
+    )
+
+    Dparams = Dparams._replace(Mt_min=_Mt_min)
+    Dparams = Dparams._replace(Mt_ref=_Mt_ref)
+
+    phiref0 = imr_phase(_Mt_ref, Dparams.eta, PhaseCoeffs22)  # phase at tref
+    # phiref0 = imr_phase(Dparams.t_ref, Dparams.eta, PhaseCoeffs22)  # phase at tref
+    return Dparams, PhaseCoeffs22._replace(phiref0=phiref0)
 
 
 @jax.jit
@@ -569,6 +611,7 @@ def imr_phase(
         ]
     )
 
+    @jax.jit
     def _phase_scalar(t: Array, _phase_22: float | Array) -> Array:
         # Define branch functions for jax.lax.cond
         def _inspiral(t, _phase_22):
@@ -643,34 +686,58 @@ def imr_phase(
     return phases
 
 
-@jax.jit(static_argnames=("tlow_fit",))
+@jax.jit
 def get_time_of_frequency(
-    freq, eta, phase_coeffs: PhaseCoeffs, tlow_fit=False, thigh=500.0
-):
-    """Get time corresponding to a given frequency using root finding."""
+    freq: float | Array,
+    eta: float | Array,
+    phase_coeffs: PhaseCoeffs,
+    t_low: float | Array = 0.0,
+    t_high: float | Array = 500.0,
+) -> float | Array:
+    """
+    Get time corresponding to a given frequency using root finding.
 
-    tlow = -0.012 * freq ** (-2.7) if tlow_fit else -1e9
+    Parameters
+    ----------
+    freq : float | Array
+        (Dimensionless) frequency at which to find the corresponding time.
+    eta : float | Array
+        Symmetric mass ratio.
+    phase_coeffs : PhaseCoeffs
+        Phase coefficients for the mode.
+    t_low : float | Array, optional
+        Lower bound for the time search (default is 0.0. In this case, it is adjusted based on the frequency).
+    t_high : float | Array, optional
+        Upper bound for the time search (default is 500.0).
+    """
 
-    def time_of_freq(t, args):
+    t_low = jax.lax.cond(
+        t_low == 0,
+        lambda: -0.012 * freq ** (-2.7),
+        lambda: t_low,
+        # t_low,
+    )
+
+    def time_of_freq(t, freq):
         time = jax.lax.cond(
-            t < phase_coeffs.inspiral_cut,
+            t < phase_coeffs.tEarly,
             lambda t: t - phase_coeffs.tt0,
             lambda t: t,
             t,
         )
         omega = imr_omega(time, eta, phase_coeffs)
-        return 2 * jnp.pi * args - omega
+        return 2 * jnp.pi * freq - omega
 
     solver = optx.Bisection(  # type: ignore
-        atol=1e-10,
-        rtol=1e-10,
+        atol=1e-12,
+        rtol=1e-12,
     )
     time_root: optx.Solution = optx.root_find(
         time_of_freq,
         solver,
         args=freq,
         y0=-0.01 * freq ** (-2.7),
-        options=dict(lower=tlow, upper=thigh),
+        options=dict(lower=t_low, upper=t_high),
         max_steps=1000,
     )
 
