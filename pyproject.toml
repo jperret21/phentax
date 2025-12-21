@@ -41,3 +41,10 @@ dev = [
     "ipykernel>=7.1.0",
     "pre-commit>=4.5.0",
 ]
+docs = [
+    "numpydoc>=1.10.0",
+    "pydata-sphinx-theme>=0.16.1",
+    "sphinx>=8.2.3",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-rtd-theme==3.0.2",
+]

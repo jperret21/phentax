@@ -1,32 +1,14 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Parameter space fits for IMRPhenomT(HM).
 ============================
 
 Contains calibrated fits for collocation points, ringdown frequencies,
 final spin/mass, and other quantities. All functions are JAX-compatible.
-
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-    :toctree: _autosummary
-    final_mass_2017
-    final_spin_2017
-    fring
-    fdamp
-    fdamp_n2
-    inspiral_t0
-    inspiral_freq_cp
-    inspiral_amp_cp
-    intermediate_freq_cp1
-    peak_freq
-    rd_freq_d2
-    rd_freq_d3
-    intermediate_amp_cp1
-    peak_amp
-    rd_amp_c3
-    tshift
 """
 
 

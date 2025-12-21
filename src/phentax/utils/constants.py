@@ -1,6 +1,15 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 
+# Credits for the original implementations: Cecilio García Quirós
+
+"""
+Constants
+=========
+
+Physical constants and conversion factors.
+"""
+
 # Physical constants in SI units
 MSUN_SI = 1.988409902147041637325262574352366540e30  # Solar mass [kg]
 MTSUN_SI = 4.925490947641266978197229498498379006e-6  # Solar mass [s]

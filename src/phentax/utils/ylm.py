@@ -1,15 +1,13 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Spin-weighted spherical harmonics
 ================================
 Jax implementation of -2 spin-weighted spherical harmonics.
 Enables jitted, vmapped and differentiable computation of Ylm.
-
-... autosummary::
-    spin_weighted_spherical_harmonic
-    spin_weighted_spherical_harmonic_all_modes
 """
 
 import jax

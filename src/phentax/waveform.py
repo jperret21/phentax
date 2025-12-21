@@ -1,19 +1,15 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
 
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Waveform
 ================================
 
 IMRPhenomTHM interface class for waveform generation.
-
-Credits for the original implementations: Cecilio García Quirós
-
-..autoclass:: IMRPhenomTHM
-    :members:
-    :undoc-members:
-    :show-inheritance:
 """
+
 from typing import Optional
 
 import jax
@@ -68,6 +64,7 @@ class IMRPhenomTHM:
     ):
         """
         Initialize the IMRPhenomTHM waveform generator.
+
         Parameters
         ----------
         higher_modes : Optional[Array | list | str], default "all"

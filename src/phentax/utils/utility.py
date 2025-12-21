@@ -1,5 +1,8 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Utility
 ================================
@@ -8,27 +11,6 @@ Utility functions for phentax.
 
 Contains helper functions for mass ratios, spins, unit conversions,
 and spin-weighted spherical harmonics, all implemented in pure JAX.
-
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-    :toctree: _autosummary
-
-    m1ofeta
-    m2ofeta
-    qofeta
-    eta_from_q
-    check_equal_bhs
-    chi_eff
-    sTotR
-    hz_to_mf
-    mf_to_hz
-    second_to_mass
-    mass_to_second
-    amp_nrto_si
-    mode_to_lm
-    mode_to_int
-    solve_3x3_explicit
 """
 
 

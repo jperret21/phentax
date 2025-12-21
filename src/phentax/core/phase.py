@@ -1,21 +1,13 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Phase and omega coefficient computation for IMRPhenomT(HM).
 
 This module implements the pPhase class functionality from phenomxpy,
 computing all the coefficients needed for the IMR omega and phase ansatze.
-
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-    :toctree: _autosummary
-    PhaseCoeffs
-    compute_phase_coeffs_22
-    compute_phase_coeffs_hm
-    imr_phase
-    imr_omega
-    get_time_of_frequency
 """
 
 from typing import NamedTuple, Tuple

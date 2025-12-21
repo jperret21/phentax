@@ -1,5 +1,8 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Amplitude coefficient computation for IMRPhenomT(HM).
 ======================================================
@@ -7,14 +10,6 @@ Amplitude coefficient computation for IMRPhenomT(HM).
 This module implements the pAmp class functionality from phenomxpy,
 computing all the coefficients needed for the IMR amplitude ansatze.
 
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-    :toctree: _autosummary
-    AmplitudeCoeffs
-    compute_amplitude_coeffs_22
-    compute_amplitude_coeffs_hm
-    imr_amplitude
 """
 
 from typing import NamedTuple, Tuple

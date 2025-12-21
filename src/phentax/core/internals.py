@@ -1,18 +1,12 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Internals
 ============================
 Internal data structures and coefficient computation for IMRPhenomT(HM).
-
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-   :toctree: _autosummary
-
-   WaveformParams
-   compute_waveform_params
-   compute_time_grid
 """
 
 from typing import NamedTuple

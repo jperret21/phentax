@@ -1,5 +1,8 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 Collocation
 ============================
@@ -7,16 +10,6 @@ Collocation point methods for pseudo-PN coefficient computation.
 
 This module implements the linear system solving to compute pseudo-PN coefficients
 that augment the Post-Newtonian expansion to match numerical relativity fits.
-
-Credits for the original implementations: Cecilio García Quirós
-
-.. autosummary::
-   :toctree: _autosummary
-    OmegaPseudoPNCoeffs
-    AmpPseudoPNCoeffs
-    compute_omega_collocation_points
-    compute_omega_pseudo_pn_coeffs
-    compute_amp_collocation_points
 """
 from typing import NamedTuple
 

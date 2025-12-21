@@ -1,14 +1,13 @@
 # Copyright (C) 2025 Alessandro Santini
 # SPDX-License-Identifier: MIT
+
+# Credits for the original implementations: Cecilio García Quirós
+
 """
 JAX configuration for phentax.
 
 This module configures JAX for gravitational waveform computations,
 enabling float64 precision by default and providing platform controls.
-
-.. autosummary::
-    configure_jax
-    setup_logging
 """
 
 import logging

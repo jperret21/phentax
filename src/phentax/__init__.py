@@ -5,7 +5,6 @@ phentax: JAX implementation of IMRPhenomT(HM) gravitational waveform model.
 
 This package provides differentiable, JIT-compiled gravitational waveform
 generation for compact binary coalescences using JAX.
-
 """
 
 # from .utils.config import configure_jax
@@ -17,3 +16,5 @@ generation for compact binary coalescences using JAX.
 from . import core, utils, waveform
 
 __version__ = "0.1.0"
+__copyright__ = "2025, Alessandro Santini"
+__author__ = "Alessandro Santini"
