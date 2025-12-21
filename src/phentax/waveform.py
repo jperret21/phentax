@@ -37,7 +37,10 @@ from phentax.utils.coarse_graining import (
 )
 from phentax.utils.config import setup_logging
 from phentax.utils.utility import check_equal_bhs, mass_to_second, mode_to_lm
-from phentax.utils.ylm import spin_weighted_spherical_harmonic_all_modes
+from phentax.utils.ylm import (
+    spin_weighted_spherical_harmonic,
+    spin_weighted_spherical_harmonic_all_modes,
+)
 
 logger = setup_logging(__name__)
 
@@ -399,7 +402,7 @@ class IMRPhenomTHM:
         chi1z: float | Array,
         chi2z: float | Array,
         distance: float | Array,
-        phif_ref: float | Array,
+        phi_ref: float | Array,
         f_ref: float | Array,
         f_min: float | Array,
         inclination: float,
@@ -423,7 +426,7 @@ class IMRPhenomTHM:
             Dimensionless spin of the second black hole along the orbital angular momentum.
         distance : float | Array
             Luminosity distance to the binary in megaparsecs.
-        phif_ref : float | Array
+        phi_ref : float | Array
             Reference phase at frequency f_ref in radians.
         f_ref : float | Array
             Reference frequency in Hz.
@@ -457,7 +460,7 @@ class IMRPhenomTHM:
                 chi1z,
                 chi2z,
                 distance,
-                phif_ref,
+                phi_ref,
                 f_ref,
                 f_min,
                 inclination,
@@ -495,7 +498,7 @@ class IMRPhenomTHM:
         chi1z: float | Array,
         chi2z: float | Array,
         distance: float | Array,
-        phif_ref: float | Array,
+        phi_ref: float | Array,
         f_ref: float | Array,
         f_min: float | Array,
         inclination: float,
@@ -519,7 +522,7 @@ class IMRPhenomTHM:
             Dimensionless spin of the second black hole along the orbital angular momentum.
         distance : float | Array
             Luminosity distance to the binary in megaparsecs.
-        phif_ref : float | Array
+        phi_ref : float | Array
             Reference phase at frequency f_ref in radians.
         f_ref : float | Array
             Reference frequency in Hz.
@@ -562,7 +565,7 @@ class IMRPhenomTHM:
             chi1z,
             chi2z,
             distance,
-            phif_ref,
+            phi_ref,
             f_ref,
             f_min,
             inclination,
@@ -595,6 +598,197 @@ class IMRPhenomTHM:
         h_plus, h_cross = self.rotate_by_polarization(h_plus, h_cross, psi)
 
         return times, mask, h_plus, h_cross
+
+    # Define the single-binary computation to be vmapped
+    @jax.jit(static_argnames="self")
+    def _compute_strain_single(
+        self,
+        _times,
+        _mask,
+        _wf_params,
+        _amp_coeffs_22,
+        _phase_coeffs_22,
+        _inc,
+        _phi_ref,
+    ):
+        # 1. Compute (2,2) mode
+        amp22, phase22 = self._compute_amp_phase_22(
+            _times, _mask, _wf_params, _amp_coeffs_22, _phase_coeffs_22
+        )
+        # Remove singleton dim (1, Ntimes) -> (Ntimes,)
+        amp22 = amp22[0]
+        phase22 = phase22[0]
+
+        h22 = amp22 * jnp.exp(-1j * phase22) * _wf_params.amp_factor
+
+        # Project (2,2)
+        # spin_weighted_spherical_harmonic takes (theta, phi, l, m)
+        # phi for Ylm is usually pi/2 - phi_ref
+        y22 = spin_weighted_spherical_harmonic(_inc, jnp.pi / 2.0 - _phi_ref, 2, 2)
+        strain = h22 * y22
+
+        if self.include_negative_modes:
+            # Add (2,-2)
+            # h(2,-2) = (-1)^2 * conj(h(2,2)) = conj(h22)
+            y2m2 = spin_weighted_spherical_harmonic(
+                _inc, jnp.pi / 2.0 - _phi_ref, 2, -2
+            )
+            strain += jnp.conj(h22) * y2m2
+
+        if not self.has_hm:
+            return strain
+
+        # 2. Loop over higher modes
+        n_modes = self.higher_modes.shape[0]
+
+        # Pre-compute equal BH check for this binary
+        equal_bhs = check_equal_bhs(
+            _wf_params.m1, _wf_params.m2, _wf_params.chi1, _wf_params.chi2
+        )
+
+        def body_fun(i, current_strain):
+            mode = self.higher_modes[i]
+
+            # Compute HM waveform
+            amp_hm, phase_hm = self._compute_amp_phase_hm(
+                mode, _times, _mask, _wf_params, _phase_coeffs_22, phase22
+            )
+
+            # Apply odd-m masking for equal BHs
+            m_mode = mode % 10
+            is_odd = (m_mode % 2) == 1
+            should_zero = is_odd & equal_bhs
+
+            amp_hm = jnp.where(should_zero, 0.0, amp_hm)
+            phase_hm = jnp.where(should_zero, 0.0, phase_hm)
+
+            h_hm = amp_hm * jnp.exp(-1j * phase_hm) * _wf_params.amp_factor
+
+            # Project (l, m)
+            l_mode = mode // 10
+            y_lm = spin_weighted_spherical_harmonic(
+                _inc, jnp.pi / 2.0 - _phi_ref, l_mode, m_mode
+            )
+            term = h_hm * y_lm
+
+            if self.include_negative_modes:
+                # Add (l, -m)
+                # h(l,-m) = (-1)^l * conj(h(l,m))
+                y_lmm = spin_weighted_spherical_harmonic(
+                    _inc, jnp.pi / 2.0 - _phi_ref, l_mode, -m_mode
+                )
+                # (-1)^l is 1.0 if l even, -1.0 if l odd
+                parity = jnp.where(l_mode % 2 == 0, 1.0, -1.0)
+                term += parity * jnp.conj(h_hm) * y_lmm
+
+            return current_strain + term
+
+        strain = jax.lax.fori_loop(0, n_modes, body_fun, strain)
+        return strain
+
+    def compute_polarizations_at_once(
+        self,
+        m1: float | Array,
+        m2: float | Array,
+        chi1z: float | Array,
+        chi2z: float | Array,
+        distance: float | Array,
+        phi_ref: float | Array,
+        f_ref: float | Array,
+        f_min: float | Array,
+        inclination: float,
+        psi: float | Array,
+        delta_t: float = 15.0,
+        t_min: float = jnp.nan,
+        t_ref: float = jnp.nan,
+    ) -> tuple[Array, Array, Array, Array]:
+        """
+        Generate plus and cross polarizations, but computing the hlms individually for each mode to save memory.
+
+        Parameters
+        ----------
+        m1 : float | Array
+            Mass of the first black hole in solar masses.
+        m2 : float | Array
+            Mass of the second black hole in solar masses.
+        chi1z : float | Array
+            Dimensionless spin of the first black hole along the orbital angular momentum.
+        chi2z : float | Array
+            Dimensionless spin of the second black hole along the orbital angular momentum.
+        distance : float | Array
+            Luminosity distance to the binary in megaparsecs.
+        phi_ref : float | Array
+            Reference phase at frequency f_ref in radians.
+        f_ref : float | Array
+            Reference frequency in Hz.
+        f_min : float | Array
+            Minimum frequency in Hz.
+        inclination : float
+            Inclination angle of the binary in radians.
+        psi : float | Array
+            Polarization angle in radians.
+        delta_t : float, default 15.0
+            Time step for waveform generation in seconds.
+        t_min : float, default jnp.nan
+            Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
+        t_ref : float, default jnp.nan
+            Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
+        times : Optional[Array], default None
+            Output time array in seconds. If provided and `self.use_splines = True`, the output polarizations will be interpolated onto this time array.
+
+        Returns
+        -------
+        times_out : Array
+            Time array in seconds.
+        mask_out : Array
+            Boolean mask indicating valid time points.
+        h_plus_out : Array
+            Plus polarization strain.
+        h_cross_out : Array
+            Cross polarization strain.
+        """
+        wf_params, times, mask, amplitude_coeffs_22, phase_coeffs_22 = (
+            self.initial_processing(
+                m1,
+                m2,
+                chi1z,
+                chi2z,
+                distance,
+                phi_ref,
+                f_ref,
+                f_min,
+                inclination,
+                psi,
+                delta_t,
+                t_min,
+                t_ref,
+            )
+        )
+
+        strain = jnp.zeros_like(times, dtype=jnp.complex128)
+
+        # Vmap over the batch of parameters
+        strain = jax.vmap(self._compute_strain_single)(
+            times,
+            mask,
+            wf_params,
+            amplitude_coeffs_22,
+            phase_coeffs_22,
+            wf_params.inclination,
+            wf_params.phi_ref,
+        )
+
+        # Compute polarizations
+        h_plus = jnp.real(strain)
+        h_cross = -jnp.imag(strain)
+
+        # Rotate by polarization angle psi
+        h_plus, h_cross = self.rotate_by_polarization(h_plus, h_cross, wf_params.psi)
+
+        # Convert times to seconds
+        times_sec = mass_to_second(times, wf_params.total_mass)
+
+        return times_sec, mask, h_plus, h_cross
 
     def spline_polarizations(
         self,
@@ -674,7 +868,7 @@ class IMRPhenomTHM:
         chi1z: float | Array,
         chi2z: float | Array,
         distance: float | Array,
-        phif_ref: float | Array,
+        phi_ref: float | Array,
         f_ref: float | Array,
         f_min: float | Array,
         inclination: float | Array,
@@ -699,7 +893,7 @@ class IMRPhenomTHM:
             Dimensionless spin of the second black hole along the orbital angular momentum.
         distance : float | Array
             Luminosity distance to the binary in megaparsecs.
-        phif_ref : float | Array
+        phi_ref : float | Array
             Reference phase at frequency f_ref in radians.
         f_ref : float | Array
             Reference frequency in Hz.
@@ -730,7 +924,7 @@ class IMRPhenomTHM:
             s2z=jnp.atleast_1d(chi2z),
             distance=jnp.atleast_1d(distance),
             inclination=jnp.atleast_1d(inclination),
-            phi_ref=jnp.atleast_1d(phif_ref),
+            phi_ref=jnp.atleast_1d(phi_ref),
             psi=jnp.atleast_1d(psi),
             f_ref=f_ref,
             f_min=f_min,
@@ -791,7 +985,7 @@ class IMRPhenomTHM:
         chi1z: float | Array,
         chi2z: float | Array,
         distance: float | Array,
-        phif_ref: float | Array,
+        phi_ref: float | Array,
         f_ref: float | Array,
         f_min: float | Array,
         inclination: float | Array,
@@ -817,7 +1011,7 @@ class IMRPhenomTHM:
             Dimensionless spin of the second black hole along the orbital angular momentum.
         distance : float | Array
             Luminosity distance to the binary in megaparsecs.
-        phif_ref : float | Array
+        phi_ref : float | Array
             Reference phase at frequency f_ref in radians.
         f_ref : float | Array
             Reference frequency in Hz.
@@ -855,7 +1049,7 @@ class IMRPhenomTHM:
             chi1z,
             chi2z,
             distance,
-            phif_ref,
+            phi_ref,
             f_ref,
             f_min,
             inclination,
@@ -901,7 +1095,7 @@ if __name__ == "__main__":
         higher_modes="all",
         include_negative_modes=True,
         t_low_fit=tlowfit,
-        coarse_grain=True,
+        coarse_grain=False,
         atol=tol,
         rtol=tol,
     )
@@ -909,7 +1103,7 @@ if __name__ == "__main__":
     import time
 
     st = time.time()
-    times, mask, h_plus, h_cross = imr.compute_polarizations(
+    times, mask, h_plus, h_cross = imr.compute_polarizations_at_once(
         m1,
         m2,
         chi1,
@@ -925,7 +1119,7 @@ if __name__ == "__main__":
     logger.info(f"PHENTAX polarizations computed in {time.time() - st} WARMUP seconds")
 
     st = time.time()
-    times, mask, h_plus, h_cross = imr.compute_polarizations(
+    times, mask, h_plus, h_cross = imr.compute_polarizations_at_once(
         m1,
         m2,
         chi1,
@@ -965,26 +1159,38 @@ if __name__ == "__main__":
     logger.info(f"XPY polarizations computed in {time.time() - st} seconds")
 
     # plt.figure(); plt.plot(times[mask], h_plus[mask].real); plt.plot(times[mask], h_cross[mask].real); plt.title("PHENTAX"); plt.xlabel("time [s]"); plt.show()
-    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(8, 6))
-    axs[0].plot(times[mask], h_plus[mask], label="PHENTAX")
-    axs[0].legend()
-    axs[0].plot(xpy_times, xpy_plus, ls="--", label="XPY")
-    axs[0].set_title("H plus")
+    fig, axs = plt.subplots(2, 2, sharex=True, figsize=(16, 12))
+    axs[0, 0].plot(times[mask], h_plus[mask], label="PHENTAX")
+    axs[0, 0].plot(xpy_times, xpy_plus, ls="--", label="PHENOMXPY")
+    axs[0, 0].legend()
+    axs[0, 0].set_title("H plus")
+
+    axs[0, 1].plot(times[mask], h_cross[mask], label="PHENTAX")
+    axs[0, 1].plot(xpy_times, xpy_cross, ls="--", label="PHENOMXPY")
+    axs[0, 1].legend()
+    axs[0, 1].set_title("H cross")
 
     from scipy.interpolate import CubicSpline as _CubicSpline
 
     _spline = _CubicSpline(xpy_times, xpy_plus)
     xpy_plus_interp = _spline(np.asarray(times[mask]))
+    xpy_cross_interp = _spline(np.asarray(times[mask]))
 
     # difference plot
-    axs[1].plot(
+    axs[1, 0].plot(
         times[mask],
         jnp.abs(h_plus[mask] - xpy_plus_interp) / jnp.abs(h_plus[mask]),
-        label="Difference",
     )
-    axs[1].legend()
-    axs[1].set_title("Difference H plus")
-    plt.xlabel("time [s]")
+    axs[1, 0].set_title("Relative difference H plus")
+    axs[1, 0].set_xlabel("time [s]")
+
+    axs[1, 1].plot(
+        times[mask],
+        jnp.abs(h_cross[mask] - xpy_cross_interp) / jnp.abs(h_cross[mask]),
+    )
+    axs[1, 1].set_title("Relative difference H cross")
+    axs[1, 1].set_xlabel("time [s]")
+
     plt.tight_layout()
     plt.show()
 
@@ -996,6 +1202,17 @@ if __name__ == "__main__":
 
     isclose = jnp.allclose(h_plus[mask], xpy_plus_interp, rtol=1e-12, atol=1e-12)
     print(f"H plus match with tolerance 1e-12: {isclose}")
+
+    print("==" * 10)
+
+    isclose = jnp.allclose(h_cross[mask], xpy_cross_interp, rtol=1e-5, atol=1e-5)
+    print(f"H cross match with tolerance 1e-5: {isclose}")
+
+    isclose = jnp.allclose(h_cross[mask], xpy_cross_interp, rtol=1e-7, atol=1e-7)
+    print(f"H cross match with tolerance 1e-7: {isclose}")
+
+    isclose = jnp.allclose(h_cross[mask], xpy_cross_interp, rtol=1e-12, atol=1e-12)
+    print(f"H cross match with tolerance 1e-12: {isclose}")
 
     wf_params, times, mask, amplitude_coeffs_22, phase_coeffs_22 = (
         imr.initial_processing(
