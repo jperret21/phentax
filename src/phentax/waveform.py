@@ -103,7 +103,7 @@ class IMRPhenomTHM:
                 raise TypeError(
                     "higher_modes must be None, a list, an array, or 'all'."
                 )
-            logger.debug(f"Including higher modes: {self.higher_modes}")
+            logger.debug("Including higher modes: ", self.higher_modes)
             self.has_hm = True
             self.odd_modes_mask = (self.higher_modes % 2 == 1)[:, None]
 
@@ -126,16 +126,16 @@ class IMRPhenomTHM:
             self.negative_mms = jnp.array([])
 
         self.coarse_grain = coarse_grain
-        logger.debug(f"Coarse graining set to {self.coarse_grain}")
+        logger.debug("Coarse graining set to ", {self.coarse_grain})
 
         self.use_splines = use_splines
-        logger.debug(f"Using splines set to {self.use_splines}")
+        logger.debug("Using splines set to ", self.use_splines)
 
         if t_low_fit:
-            logger.debug("Using default fit in t(f): t_low = - 0.012 * f^(-2.7)")
+            logger.debug("Using fit in t(f): t_low = - 0.015 * f^(-2.7)")
             self.t_low = 0.0  # will be set in get_time_of_frequency
         else:
-            logger.info(f"Using default t_low = -1e9")
+            logger.debug("Using default t_low = -1e9 M in t(f).")
             self.t_low = -1e9
 
         self.atol = atol

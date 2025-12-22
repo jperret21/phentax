@@ -647,7 +647,7 @@ def imr_omega(
     time: float | Array, eta: float | Array, phase_coeffs: PhaseCoeffs
 ) -> float | Array:
     """
-    Compute the frequency :math:`\\omega(t) = 2\pi f(t)` at given times for a given mode.
+    Compute the frequency :math:`\\omega(t) = 2\\pi f(t)` at given times for a given mode.
 
     Parameters
     ----------
@@ -748,7 +748,7 @@ def imr_omega_dot(
     time: float | Array, eta: float | Array, phase_coeffs: PhaseCoeffs
 ) -> float | Array:
     """
-    Compute the frequency derivative :math:`\dot{\omega}(t)` at given times for a given mode with JAX autodiff.
+    Compute the frequency derivative :math:`\\dot{\\omega}(t)` at given times for a given mode with JAX autodiff.
 
     Parameters
     ----------
