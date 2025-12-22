@@ -33,7 +33,9 @@ class OmegaPNCoeffs(eqx.Module):
 
 
 class AmpPNCoeffs(eqx.Module):
-    """Amplitude PN coefficients for a specific mode."""
+    """
+    Amplitude PN coefficients for a specific mode.
+    """
 
     # Real part coefficients
     ampN: float | Array  # Leading order

@@ -378,6 +378,18 @@ def compute_amplitude_coeffs_22(
 ) -> AmplitudeCoeffs:
     """
     Compute all amplitude coefficients for the 22 mode.
+
+    Parameters
+    ----------
+    wf_pafams : WaveformParams
+        Waveform parameters.
+    phase_coeffs : PhaseCoeffs
+        Phase coefficients for the 22 mode.
+
+    Returns
+    -------
+    AmplitudeCoeffs
+        All amplitude coefficients for the 22 mode.
     """
     mode = 22
     pn_real, pn_imag, fac0 = _compute_pn_amplitude_coeffs(
@@ -500,7 +512,21 @@ def compute_amplitude_coeffs_hm(
     mode: int | Array,
 ) -> AmplitudeCoeffs:
     """
-    Compute all amplitude coefficients for HM modes.
+    Compute all amplitude coefficients for a given higher mode.
+
+    Parameters
+    ----------
+    wf_pafams : WaveformParams
+        Waveform parameters.
+    phase_coeffs_22 : PhaseCoeffs
+        Phase coefficients for the 22 mode.
+    mode : int | Array
+        The higher mode to compute (e.g., 21, 33, 44, 55).
+
+    Returns
+    -------
+    AmplitudeCoeffs
+        All amplitude coefficients for the specified higher mode.
     """
     pn_real, pn_imag, fac0 = _compute_pn_amplitude_coeffs(
         wf_pafams.eta,
@@ -655,7 +681,23 @@ def imr_amplitude(
     phase_coeffs_22: PhaseCoeffs,
 ) -> Array:
     """
-    Compute IMR amplitude at given times.
+    Compute IMR amplitude at given times for a specific mode.
+
+    Parameters
+    ----------
+    time : Array
+        Times at which to compute the amplitude.
+    eta : Array
+        Symmetric mass ratio.
+    amp_coeffs : AmplitudeCoeffs
+        Amplitude coefficients for the mode.
+    phase_coeffs_22 : PhaseCoeffs
+        Phase coefficients for the 22 mode.
+
+    Returns
+    -------
+    Array
+        Computed amplitude at the given times.
     """
 
     def _amp_scalar(t: Array) -> Array:

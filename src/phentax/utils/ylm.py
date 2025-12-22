@@ -5,9 +5,9 @@
 
 """
 Spin-weighted spherical harmonics
-================================
+=================================
 Jax implementation of -2 spin-weighted spherical harmonics.
-Enables jitted, vmapped and differentiable computation of Ylm.
+Enables jitted, vmapped and differentiable computation of :math:`_{-2}Y_{\\ell,m}`.
 """
 
 import jax
@@ -25,7 +25,7 @@ def spin_weighted_spherical_harmonic(
     emm: int | Array = 2,
 ) -> Array:
     """
-    Compute spin-weighted spherical harmonic Y_{-2,ell,m}(theta, phi).
+    Compute spin-weighted spherical harmonic :math:`_{-2}Y_{\\ell,m}(\\theta, \phi)`.
 
     Optimized for JAX using explicit half-angle formulas to avoid branching.
     Valid for s=-2 and specific modes used in gravitational waves.

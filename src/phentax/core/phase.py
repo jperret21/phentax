@@ -241,7 +241,7 @@ def compute_phase_coeffs_22(
     wf_params: WaveformParams,
 ) -> tuple[WaveformParams, PhaseCoeffs]:
     """
-    Compute all phase/omega coefficients for the 22 mode.
+    Compute all phase coefficients for the 22 mode.
 
     Parameters
     ----------
@@ -481,13 +481,26 @@ def compute_phase_coeffs_22(
 @jax.jit
 def compute_phase_coeffs_hm(
     wf_params: WaveformParams,
-    Phase22: PhaseCoeffs,
+    phase_coeffs_22: PhaseCoeffs,
     OmegaCutPNAMP: Array,
     PhiCutPNAMP: Array,
     mode: int | Array,
 ) -> PhaseCoeffs:
     """
     Compute all phase/omega coefficients for HM modes.
+
+    Parameters
+    ----------
+    wf_params : WaveformParams
+        Waveform parameters for the waveform.
+    phase_coeffs_22 : PhaseCoeffs
+        Phase coefficients for the 22 mode.
+    OmegaCutPNAMP : Array
+        Omega contribution from complex amplitude at transtion time ``pAmp.inspiral_cut`` for HM modes.
+    PhiCutPNAMP : Array
+        Phase contribution from complex amplitude at transtion time ``pAmp.inspiral_cut`` for HM modes.
+    mode : int | Array
+        Mode number (e.g., 33, 44, etc.).
     """
     # Common coefficients
     omega_pn_array, pseudo_pn, tt0, tEarly, powers_of_5 = _compute_pn_and_pseudo_pn(
@@ -519,10 +532,12 @@ def compute_phase_coeffs_hm(
 
     # int | Arrayermediate region
     omegaCut = (
-        m / 2.0 * imr_omega(inspiral_cut, eta=wf_params.eta, phase_coeffs=Phase22)
+        m
+        / 2.0
+        * imr_omega(inspiral_cut, eta=wf_params.eta, phase_coeffs=phase_coeffs_22)
     )
     domegaCut = compute_domega_cut(
-        inspiral_cut, Phase22.inspiral_cut, wf_params.eta, Phase22
+        inspiral_cut, phase_coeffs_22.inspiral_cut, wf_params.eta, phase_coeffs_22
     )
     domegaCut = -m / 2.0 * domegaCut / omegaRING
 
@@ -553,7 +568,9 @@ def compute_phase_coeffs_hm(
     # Phase offsets
     phOffInsp = 0.0
     phMECOinsp = (
-        m / 2.0 * imr_phase(inspiral_cut, eta=wf_params.eta, phase_coeffs=Phase22)
+        m
+        / 2.0
+        * imr_phase(inspiral_cut, eta=wf_params.eta, phase_coeffs=phase_coeffs_22)
     )
     phMECOmerger = _intermediate_ansatz_phase_value(
         inspiral_cut,
@@ -618,7 +635,7 @@ def compute_phase_coeffs_hm(
         omegaCutPNAMP=OmegaCutPNAMP,
         phiCutPNAMP=PhiCutPNAMP,
         phoff=phoff,
-        phiref0=Phase22.phiref0,
+        phiref0=phase_coeffs_22.phiref0,
         phOffInsp=phOffInsp,
         phOffMerger=phOffMerger,
         phOffRD=phOffRD,
@@ -629,7 +646,23 @@ def compute_phase_coeffs_hm(
 def imr_omega(
     time: float | Array, eta: float | Array, phase_coeffs: PhaseCoeffs
 ) -> float | Array:
-    """Compute IMR omega at time using the full ansatz."""
+    """
+    Compute the frequency :math:`\\omega(t) = 2\pi f(t)` at given times for a given mode.
+
+    Parameters
+    ----------
+    time : float | Array
+        Time(s) at which to compute the phase.
+    eta : float | Array
+        Symmetric mass ratio.
+    phase_coeffs : PhaseCoeffs
+        Phase coefficients for the mode.
+
+    Returns
+    -------
+    Array
+        Phase value(s) at the given time(s).
+    """
     m = phase_coeffs.mode % 10
     # Prepare coefficient arrays for helper functions
     omega_pn_coeffs = jnp.array(
@@ -718,7 +751,23 @@ def imr_phase(
     phase_22: float | Array = 0.0,
 ) -> Array:
     """
-    Compute the IMRPhenomT(HM) phase at given times for a given mode.
+    Compute the phase at given times for a given mode.
+
+    Parameters
+    ----------
+    time : float | Array
+        Time(s) at which to compute the phase.
+    eta : float | Array
+        Symmetric mass ratio.
+    phase_coeffs : PhaseCoeffs
+        Phase coefficients for the mode.
+    phase_22 : float | Array, optional
+        Phase of the (2,2) mode at the same times (default is 0.0). This is used for the higher modes' inspiral phase computation.
+
+    Returns
+    -------
+    Array
+        Phase value(s) at the given time(s).
     """
     # Prepare coefficient arrays for helper functions
     omega_pn_coeffs = jnp.array(
@@ -884,29 +933,47 @@ def get_time_of_frequency(
 
 
 @jax.jit
-def compute_domega_cut(tCut, tCut_threshold, eta, Phase22):
-    """Compute domegaCut using JAX conditional."""
+def compute_domega_cut(
+    tCut: float | Array,
+    tCut_threshold: float | Array,
+    eta: float | Array,
+    phase_coeffs_22: PhaseCoeffs,
+) -> float | Array:
+    """
+    Compute domegaCut using JAX conditional.
+
+    Parameters
+    ----------
+    tCut : float | Array
+        Transition time inspiral -> intermediate.
+    tCut_threshold : float | Array
+        Threshold time to switch between inspiral and merger branch.
+    eta : float | Array
+        Symmetric mass ratio.
+    phase_coeffs_22 : PhaseCoeffs
+
+    """
 
     def inspiral_branch(t):
         omega_pn_coefficients = jnp.array(
             [
-                Phase22.omega1PN,
-                Phase22.omega1halfPN,
-                Phase22.omega2PN,
-                Phase22.omega2halfPN,
-                Phase22.omega3PN,
-                Phase22.omega3halfPN,
+                phase_coeffs_22.omega1PN,
+                phase_coeffs_22.omega1halfPN,
+                phase_coeffs_22.omega2PN,
+                phase_coeffs_22.omega2halfPN,
+                phase_coeffs_22.omega3PN,
+                phase_coeffs_22.omega3halfPN,
             ]
         )
 
         omega_pseudo_pn_coefficients = jnp.array(
             [
-                Phase22.omegaInspC1,
-                Phase22.omegaInspC2,
-                Phase22.omegaInspC3,
-                Phase22.omegaInspC4,
-                Phase22.omegaInspC5,
-                Phase22.omegaInspC6,
+                phase_coeffs_22.omegaInspC1,
+                phase_coeffs_22.omegaInspC2,
+                phase_coeffs_22.omegaInspC3,
+                phase_coeffs_22.omegaInspC4,
+                phase_coeffs_22.omegaInspC5,
+                phase_coeffs_22.omegaInspC6,
             ]
         )
 
@@ -915,17 +982,17 @@ def compute_domega_cut(tCut, tCut_threshold, eta, Phase22):
         )
 
     def merger_branch(t):
-        arcsinh = jnp.arcsinh(Phase22.alpha1RD * t)
+        arcsinh = jnp.arcsinh(phase_coeffs_22.alpha1RD * t)
         return (
-            -Phase22.omegaRING
-            / jnp.sqrt(1.0 + (Phase22.alpha1RD * t) ** 2)
+            -phase_coeffs_22.omegaRING
+            / jnp.sqrt(1.0 + (phase_coeffs_22.alpha1RD * t) ** 2)
             * (
-                Phase22.domegaPeak
-                + Phase22.alpha1RD
+                phase_coeffs_22.domegaPeak
+                + phase_coeffs_22.alpha1RD
                 * (
-                    2.0 * Phase22.omegaMergerC1 * arcsinh
-                    + 3.0 * Phase22.omegaMergerC2 * arcsinh * arcsinh
-                    + 4.0 * Phase22.omegaMergerC3 * arcsinh**3
+                    2.0 * phase_coeffs_22.omegaMergerC1 * arcsinh
+                    + 3.0 * phase_coeffs_22.omegaMergerC2 * arcsinh * arcsinh
+                    + 4.0 * phase_coeffs_22.omegaMergerC3 * arcsinh**3
                 )
             )
         )

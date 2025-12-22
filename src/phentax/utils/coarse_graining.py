@@ -6,13 +6,6 @@ Coarse graining
 ============================
 
 Utility functions for the creation of time grids.
-
-..autosummary::
-    :toctree: _autosummary
-    leading_order_delta_t
-    generate_adaptive_grid
-    generate_adaptive_grid_batch
-    masked_evaluate
 """
 
 from functools import partial
@@ -138,6 +131,17 @@ def generate_adaptive_grid(
     """
     Batch version of generate_adaptive_grid.
 
+    Parameters
+    ----------
+    etas : float | Array
+        Symmetric mass ratios.
+    tmins : float | Array
+        Minimum times (start of the valid region).
+    tmaxs : float | Array
+        Maximum times (end of the grid).
+    max_steps : int, optional
+        Maximum number of steps in the grid.
+
     Returns
     -------
     tuple[jnp.ndarray, jnp.ndarray]
@@ -211,6 +215,17 @@ def generate_uniform_grid(
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
     """
     Batch version of generate_uniform_grid.
+
+    Parameters
+    ----------
+    tmins : float | Array
+        Minimum times (start of the valid region).
+    tmaxs : float | Array
+        Maximum times (end of the grid).
+    delta_ts : float | Array
+        Time step sizes.
+    max_steps : int, optional
+        Maximum number of steps in the grid.
 
     Returns
     -------

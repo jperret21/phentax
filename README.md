@@ -1,4 +1,6 @@
-# PhenTAX: a JAX Implementation of the IMRPhenomT(HM) waveform family
+# PhenTAX: a JAX Implementation of the IMRPhenomTHM waveform family
+
+[![Documentation](https://github.com/asantini29/phentax/actions/workflows/docs.yml/badge.svg)](https://asantini29.github.io/phentax/)
 
 `phentax` is a JAX re-implementation of the IMRPhenomT and IMRPhenomTHM gravitational waveform models as implemented in the [`phenomxpy` package](https://gitlab.com/imrphenom-dev/phenomxpy).
 

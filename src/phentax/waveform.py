@@ -49,6 +49,25 @@ class IMRPhenomTHM:
     """
     Class for generating multi-polar, aligned-spin IMRPhenomTHM waveforms.
 
+    Parameters
+    ----------
+    higher_modes : Optional[Array | list | str], default "all"
+        Higher modes to include beyond (2,2). Can be:
+        - None: only (2,2) mode.
+        - "all": include all allowed higher modes.
+        - list or Array of integers: specific modes to include (e.g., [21, 33]). Only the positive m modes have to be specified.
+    include_negative_modes : bool, default True
+        Whether to include negative m modes by symmetry.
+    coarse_grain : bool, default False
+        Whether to use adaptive coarse-graining for time grid generation.
+    use_splines : bool, default False
+        Whether to use cubic spline interpolation for output waveforms.
+    t_low_fit : bool, default True
+        Whether to use the default fit for t_low in t(f).
+    atol : float, default 1e-12
+        Absolute tolerance for the t(f) root finding.
+    rtol : float, default 1e-12
+        Relative tolerance for the t(f) root finding.
     """
 
     def __init__(
@@ -64,26 +83,6 @@ class IMRPhenomTHM:
     ):
         """
         Initialize the IMRPhenomTHM waveform generator.
-
-        Parameters
-        ----------
-        higher_modes : Optional[Array | list | str], default "all"
-            Higher modes to include beyond (2,2). Can be:
-            - None: only (2,2) mode.
-            - "all": include all allowed higher modes.
-            - list or Array of integers: specific modes to include (e.g., [21, 33]). Only the positive m modes have to be specified.
-        include_negative_modes : bool, default True
-            Whether to include negative m modes by symmetry.
-        coarse_grain : bool, default False
-            Whether to use adaptive coarse-graining for time grid generation.
-        use_splines : bool, default False
-            Whether to use cubic spline interpolation for output waveforms.
-        t_low_fit : bool, default True
-            Whether to use the default fit for t_low in t(f).
-        atol : float, default 1e-12
-            Absolute tolerance for the t(f) root finding.
-        rtol : float, default 1e-12
-            Relative tolerance for the t(f) root finding.
         """
 
         if higher_modes is None:
@@ -378,7 +377,7 @@ class IMRPhenomTHM:
     @jax.jit(static_argnames="self")
     def combine_amp_phase(self, amplitudes: Array, phases: Array) -> Array:
         """
-        Combine amplitude and phase into complex strain h = A * exp(-i * phi).
+        Combine amplitude and phase into complex strain :math:`h = A * e^{-i \\phi}`.
 
         Parameters
         ----------
@@ -411,7 +410,7 @@ class IMRPhenomTHM:
         t_ref: float = jnp.nan,
     ) -> tuple[Array, Array, Array]:
         """
-        Generate complex strain h_lm for all modes for a single input binary.
+        Generate complex strain :math:`h_{lm}` for all modes for a single input binary.
 
         Parameters
         ----------
@@ -702,7 +701,7 @@ class IMRPhenomTHM:
         t_ref: float = jnp.nan,
     ) -> tuple[Array, Array, Array, Array]:
         """
-        Generate plus and cross polarizations, but computing the hlms individually for each mode to save memory.
+        Generate plus and cross polarizations, but computing the :math:`h_{lm}` individually for each mode to save memory.
 
         Parameters
         ----------
@@ -833,7 +832,7 @@ class IMRPhenomTHM:
         psi: float | Array,
     ) -> tuple[Array, Array]:
         """
-        Rotate the plus and cross polarizations by the polarization angle psi.
+        Rotate the plus and cross polarizations by the polarization angle :math:`\\psi`.
 
         Parameters
         ----------

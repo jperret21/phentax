@@ -28,8 +28,15 @@ class WaveformParams(eqx.Module):
     Physical parameters and derived quantities.
     These are intermediate quantities used throughout the waveform computation.
 
-    Note that while the waveform interface assumes `m1` and `m2` are in solar masses,
+    While the waveform interface expects the input `m1` and `m2` to be solar masses,
     here `m1` and `m2` are the dimensionless masses to match the :class:`phenomxpy` interface.
+
+    Notes
+    -----
+    - Dimensionless quantities (m1, m2, M, Mf, etc.) are in geometric units where :math:`G = c = 1`.
+    - Physical quantities (mass1, mass2, total_mass) are in solar masses
+    - Time quantities are either dimensionless (Mt_*) or in seconds (t_*, delta_t)
+    - This class is compatible with JAX transformations (`jit`, `vmap`, `grad`)
 
     Parameters
     ----------

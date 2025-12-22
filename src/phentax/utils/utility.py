@@ -91,7 +91,7 @@ def qofeta(eta: float | Array) -> float | Array:
 @jax.jit
 def eta_from_q(q: float | Array) -> float | Array:
     """
-    Compute symmetric mass ratio from mass ratio q = m1/m2 >= 1.
+    Compute symmetric mass ratio from mass ratio :math:`q = m_1/m_2 >= 1`.
 
     Parameters
     ----------
@@ -342,7 +342,7 @@ def mode_to_lm(mode: Array) -> tuple[Array, Array]:
 
 def mode_to_int(ell: int, emm: int) -> int:
     """
-    Convert (ell, m) mode indices to integer key.
+    Convert (ell, emm) mode indices to integer key.
 
     Parameters
     ----------
