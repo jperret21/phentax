@@ -4,7 +4,7 @@
 # Credits for the original implementations: Cecilio García Quirós
 
 """
-Amplitude coefficient computation for IMRPhenomT(HM).
+Amplitude coefficient computation for IMRPhenomTHM.
 ======================================================
 
 This module implements the pAmp class functionality from phenomxpy,

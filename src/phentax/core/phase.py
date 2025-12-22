@@ -4,7 +4,7 @@
 # Credits for the original implementations: Cecilio García Quirós
 
 """
-Phase and omega coefficient computation for IMRPhenomT(HM).
+Phase and omega coefficient computation for IMRPhenomTHM.
 
 This module implements the pPhase class functionality from phenomxpy,
 computing all the coefficients needed for the IMR omega and phase ansatze.
@@ -742,6 +742,30 @@ def imr_omega(
     omegas = jnp.reshape(omegas_flat, time_shape)
 
     return omegas
+
+
+def imr_omega_dot(
+    time: float | Array, eta: float | Array, phase_coeffs: PhaseCoeffs
+) -> float | Array:
+    """
+    Compute the frequency derivative :math:`\dot{\omega}(t)` at given times for a given mode with JAX autodiff.
+
+    Parameters
+    ----------
+    time : float | Array
+        Time(s) at which to compute the phase.
+    eta : float | Array
+        Symmetric mass ratio.
+    phase_coeffs : PhaseCoeffs
+        Phase coefficients for the mode.
+
+    Returns
+    -------
+    Array
+        Phase value(s) at the given time(s).
+    """
+    domega_dt = jax.grad(lambda t: imr_omega(t, eta, phase_coeffs))(time)
+    return domega_dt
 
 
 def imr_phase(
