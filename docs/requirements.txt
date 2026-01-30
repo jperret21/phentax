@@ -1,10 +1,6 @@
 sphinx
-sphinx - rtd - theme
+sphinx-rtd-theme
 jax
 jaxlib
 nbsphinx
 ipykernel
-pandoc
-plumbum
-ply
-nbsphinx
