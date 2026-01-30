@@ -1162,6 +1162,10 @@ class IMRPhenomTHM:
             Phase coefficients for the (2,2) mode.
         """
 
+        # throw an error if any of the two spins is larger than 1
+        assert jnp.all(jnp.abs(jnp.atleast_1d(chi1z)) <= 1), "Spin must be between -1 and 1"
+        assert jnp.all(jnp.abs(jnp.atleast_1d(chi2z)) <= 1), "Spin must be between -1 and 1"    
+
         wf_params = self._process_parameters(
             m1,
             m2,
