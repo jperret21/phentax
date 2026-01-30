@@ -4,3 +4,7 @@ jax
 jaxlib
 nbsphinx
 ipykernel
+pandoc
+plumbum
+ply
+nbsphinx
