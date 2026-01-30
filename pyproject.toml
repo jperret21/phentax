@@ -51,4 +51,5 @@ docs = [
     "sphinx-autodoc-typehints>=3.5.2",
     "sphinx-copybutton>=0.5.2",
     "sphinx-rtd-theme==3.0.2",
+    "nbsphinx>=0.9.8"
 ]

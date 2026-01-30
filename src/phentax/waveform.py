@@ -930,8 +930,8 @@ class IMRPhenomTHM:
         h_cross_rotated : Array
             Rotated cross polarization strain.
         """
-        cos_2psi = jnp.cos(2.0 * psi)
-        sin_2psi = jnp.sin(2.0 * psi)
+        cos_2psi = jnp.cos(2.0 * psi)[:, None]
+        sin_2psi = jnp.sin(2.0 * psi)[:, None]
 
         h_plus_rotated = h_plus * cos_2psi - h_cross * sin_2psi
         h_cross_rotated = h_plus * sin_2psi + h_cross * cos_2psi
