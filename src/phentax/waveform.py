@@ -34,6 +34,7 @@ from phentax.utils.coarse_graining import (
     masked_evaluate,
 )
 from phentax.utils.config import setup_logging
+from phentax.utils.constants import YRSID_SI
 from phentax.utils.utility import check_equal_bhs, mass_to_second, mode_to_lm
 from phentax.utils.ylm import (
     spin_weighted_spherical_harmonic,
@@ -68,6 +69,8 @@ class IMRPhenomTHM:
         Absolute tolerance for the t(f) root finding.
     rtol : float, default 1e-12
         Relative tolerance for the t(f) root finding.
+    T : float | None, default None
+        Total observation time in seconds. If None, it will be set to 3 months.
     """
 
     def __init__(
@@ -79,6 +82,7 @@ class IMRPhenomTHM:
         t_low_fit: bool = True,  # Use default fit for t_low if True.
         atol: float = 1e-12,
         rtol: float = 1e-12,
+        T: float | None = None,
         # todo add time options. return interpolant / dense array / sparse array
     ):
         """
@@ -140,6 +144,27 @@ class IMRPhenomTHM:
 
         self.atol = atol
         self.rtol = rtol
+
+        if T is None:
+            logger.debug("Total observation time not specified. Setting to 3 months.")
+            self.T = 3.0 / 12.0 * YRSID_SI
+        else:
+            self.T = T
+
+    def __repr__(self):
+        return (
+            "IMRPhenomTHM(higher_modes=%s, include_negative_modes=%s, coarse_grain=%s, use_splines=%s, t_low=%s, atol=%s, rtol=%s, T=%s)"
+            % (
+                self.higher_modes,
+                self.include_negative_modes,
+                self.coarse_grain,
+                self.use_splines,
+                self.t_low,
+                self.atol,
+                self.rtol,
+                self.T,
+            )
+        )
 
     @jax.jit(static_argnames="self")
     def _compute_coeffs_22(
@@ -408,6 +433,7 @@ class IMRPhenomTHM:
         delta_t: float = 15.0,
         t_min: float = jnp.nan,
         t_ref: float = jnp.nan,
+        T: float | None = None,
     ) -> tuple[Array, Array, Array]:
         """
         Generate amplitude and phase for all modes for a batch of binaries or a single input.
@@ -440,9 +466,12 @@ class IMRPhenomTHM:
             Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
         t_ref : float, default jnp.nan
             Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
-
+        T : float | None, default None
+            Total observation time in seconds. If set, it overrides the default value.
         Returns
         -------
+        wf_params : WaveformParams
+            Waveform parameters of the binary.
         times : Array
             Time array in seconds.
         mask : Array
@@ -468,6 +497,7 @@ class IMRPhenomTHM:
                 delta_t,
                 t_min,
                 t_ref,
+                T,  # override default total observation time
             )
         )
         amplitudes, phases = jax.vmap(self._compute_all_modes)(
@@ -478,7 +508,7 @@ class IMRPhenomTHM:
             phase_coeffs_22,
         )  # shape (Nbinaries, Nmodes, Ntimes)
 
-        return times, mask, amplitudes, phases
+        return wf_params, times, mask, amplitudes, phases
 
     def compute_hlms(
         self,
@@ -495,6 +525,7 @@ class IMRPhenomTHM:
         delta_t: float = 15.0,
         t_min: float = jnp.nan,
         t_ref: float = jnp.nan,
+        T: float | None = None,
     ) -> tuple[Array, Array, Array]:
         """
         Generate complex strain :math:`h_{lm}` for all modes for a batch of binaries or a single input.
@@ -527,6 +558,8 @@ class IMRPhenomTHM:
             Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
         t_ref : float, default jnp.nan
             Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
+        T : float | None, default None
+            Total observation time in seconds. If sets, it overrides the default value.
 
         Returns
         -------
@@ -538,7 +571,7 @@ class IMRPhenomTHM:
             Complex strain arrays for all modes, shape (Nbinaries, Nmodes, Ntimes).
         """
 
-        times, mask, amplitudes, phases = self.compute_amp_phase(
+        wf_params, times, mask, amplitudes, phases = self.compute_amp_phase(
             m1,
             m2,
             chi1z,
@@ -552,6 +585,7 @@ class IMRPhenomTHM:
             delta_t,
             t_min,
             t_ref,
+            T,
         )
 
         h_lms = (
@@ -582,6 +616,7 @@ class IMRPhenomTHM:
         delta_t: float = 15.0,
         t_min: float = jnp.nan,
         t_ref: float = jnp.nan,
+        T: float | None = None,
     ) -> tuple[Array, Array, Array, Array]:
         """
         Generate plus and cross polarizations from the computed modes.
@@ -614,9 +649,8 @@ class IMRPhenomTHM:
             Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
         t_ref : float, default jnp.nan
             Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
-        times : Optional[Array], default None
-            Output time array in seconds. If provided and `self.use_splines = True`, the output polarizations will be interpolated onto this time array.
-            Otherwise, the internal time arrays will be used.
+        T : float | None, default None
+            Total observation time in seconds. If sets, it overrides the default value.
 
         Returns
         -------
@@ -649,6 +683,7 @@ class IMRPhenomTHM:
             delta_t,
             t_min,
             t_ref,
+            T,
         )
 
         y_lms = spin_weighted_spherical_harmonic_all_modes(
@@ -777,6 +812,7 @@ class IMRPhenomTHM:
         delta_t: float = 15.0,
         t_min: float = jnp.nan,
         t_ref: float = jnp.nan,
+        T: float | None = None,
     ) -> tuple[Array, Array, Array, Array]:
         """
         Generate plus and cross polarizations, but computing the :math:`h_{lm}` individually for each mode to save memory.
@@ -809,8 +845,8 @@ class IMRPhenomTHM:
             Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
         t_ref : float, default jnp.nan
             Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
-        times : Optional[Array], default None
-            Output time array in seconds. If provided and `self.use_splines = True`, the output polarizations will be interpolated onto this time array.
+        T : float | None, default None
+            Total observation time in seconds. If set, it overrides the default value.
 
         Returns
         -------
@@ -823,6 +859,7 @@ class IMRPhenomTHM:
         h_cross_out : Array
             Cross polarization strain.
         """
+
         wf_params, times, mask, amplitude_coeffs_22, phase_coeffs_22 = (
             self.initial_processing(
                 m1,
@@ -838,6 +875,7 @@ class IMRPhenomTHM:
                 delta_t,
                 t_min,
                 t_ref,
+                T,
             )
         )
 
@@ -1019,6 +1057,7 @@ class IMRPhenomTHM:
     def get_time_grids(
         self,
         wf_params: WaveformParams,
+        num_steps: int,
     ) -> tuple[Array, Array]:
         """
         Generate the time grid for waveform generation based on waveform parameters.
@@ -1027,6 +1066,9 @@ class IMRPhenomTHM:
         ----------
         wf_params : WaveformParams
             Waveform parameters of the binary.
+        num_steps : int
+            Number of steps for the time grid. This is used to allocate memory for the time grid,
+            and it ensures all the binaries in the batch have the same number of steps.
 
         Returns
         -------
@@ -1035,14 +1077,13 @@ class IMRPhenomTHM:
         mask : Array
             Boolean mask indicating valid time points.
         """
-        max_steps = int(jnp.max(jnp.atleast_1d(wf_params.length)))
 
         if self.coarse_grain:
             times, mask = generate_adaptive_grid(
                 wf_params.eta,
                 wf_params.Mt_min,
                 wf_params.Mt_end,
-                max_steps=max_steps // 2,  # allocate half steps for adaptive grid
+                max_steps=num_steps // 2,  # allocate half steps for adaptive grid
             )
 
         else:
@@ -1050,7 +1091,7 @@ class IMRPhenomTHM:
                 wf_params.Mt_min,
                 wf_params.Mt_end,
                 wf_params.Mdelta_t,
-                max_steps=max_steps,
+                max_steps=num_steps,
             )
 
         return times, mask
@@ -1070,12 +1111,11 @@ class IMRPhenomTHM:
         delta_t: float | Array = 15.0,
         t_min: float | Array = jnp.nan,
         t_ref: float | Array = jnp.nan,
+        T: float | None = None,
     ) -> tuple[WaveformParams, Array, Array, AmplitudeCoeffs, PhaseCoeffs]:
         """
         Initial processing to compute waveform parameters and time grids.
 
-        Parameters
-        ----------
         Parameters
         ----------
         m1 : float | Array
@@ -1098,12 +1138,14 @@ class IMRPhenomTHM:
             Inclination angle of the binary in radians.
         psi : float | Array
             Polarization angle in radians.
-        delta_t : float | Array, default 5.0
+        delta_t : float | Array, default 15.0
             Time step for waveform generation in seconds.
         t_min : float | Array, default jnp.nan
             Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
         t_ref : float | Array, default jnp.nan
             Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
+        T : float | None, default None
+            Total observation time in seconds. If sets, it overrides the default value.
 
         Returns
         -------
@@ -1139,6 +1181,11 @@ class IMRPhenomTHM:
             self._compute_coeffs_22
         )(wf_params)
 
-        times, times_mask = self.get_time_grids(wf_params)
+        if T is None:
+            T = self.T
+
+        num_steps = int(jnp.ceil(T / delta_t))
+
+        times, times_mask = self.get_time_grids(wf_params, num_steps)
 
         return wf_params, times, times_mask, amplitude_coeffs_22, phase_coeffs_22

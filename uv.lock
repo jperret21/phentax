@@ -1761,7 +1761,7 @@ requires-dist = [
     { name = "diffrax", specifier = ">=0.7.0" },
     { name = "interpax", specifier = ">=0.3.12" },
     { name = "isort", specifier = ">=7.0.0" },
-    { name = "jax", specifier = ">=0.8.1" },
+    { name = "jax", extras = ["cuda12x"], specifier = ">=0.8.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "mypy", specifier = ">=1.19.0" },
     { name = "optimistix", specifier = ">=0.0.11" },
