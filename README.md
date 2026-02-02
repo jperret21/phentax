@@ -13,19 +13,23 @@ git clone https://github.com/asantini29/phentax
 cd phentax
 ```
 
+**Important:** You must specify either CPU or GPU installation to ensure JAX is properly configured for your system.
+
 ### GPU Installation (CUDA)
 For systems with NVIDIA GPUs and CUDA support, install with:
 ```
 uv sync --group gpu
 ```
+This installs all base dependencies plus JAX with CUDA 12.x support.
 
 ### CPU Installation
 For CPU-only systems, install with:
 ```
 uv sync --group cpu
 ```
+This installs all base dependencies plus JAX optimized for CPU execution.
 
-This will create a virtual environment and install all necessary dependencies. Run your commands within this environment using
+After installation, run your commands within this environment using:
 ```
 uv run <YOUR-COMMAND>
 ```
