@@ -589,8 +589,9 @@ class IMRPhenomTHM:
         )
 
         h_lms = (
-            self.combine_amp_phase(amplitudes, phases) * wf_params.amp_factor
-        )  # [:, None, None]
+            self.combine_amp_phase(amplitudes, phases)
+            * wf_params.amp_factor[:, None, None]
+        )  #
 
         # compute negative m modes by symmetry
         if self.include_negative_modes:
@@ -970,7 +971,7 @@ class IMRPhenomTHM:
         """
         cos_2psi = jnp.atleast_1d(jnp.cos(2.0 * jnp.array(psi)))[:, None]
         sin_2psi = jnp.atleast_1d(jnp.sin(2.0 * jnp.array(psi)))[:, None]
-        
+
         h_plus_rotated = h_plus * cos_2psi - h_cross * sin_2psi
         h_cross_rotated = h_plus * sin_2psi + h_cross * cos_2psi
 
@@ -1163,8 +1164,12 @@ class IMRPhenomTHM:
         """
 
         # throw an error if any of the two spins is larger than 1
-        assert jnp.all(jnp.abs(jnp.atleast_1d(chi1z)) <= 1), "Spin must be between -1 and 1"
-        assert jnp.all(jnp.abs(jnp.atleast_1d(chi2z)) <= 1), "Spin must be between -1 and 1"    
+        assert jnp.all(
+            jnp.abs(jnp.atleast_1d(chi1z)) <= 1
+        ), "Spin must be between -1 and 1"
+        assert jnp.all(
+            jnp.abs(jnp.atleast_1d(chi2z)) <= 1
+        ), "Spin must be between -1 and 1"
 
         wf_params = self._process_parameters(
             m1,
