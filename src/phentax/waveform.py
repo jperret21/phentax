@@ -1092,11 +1092,14 @@ class IMRPhenomTHM:
             )
 
         else:
+            # For uniform grids, also cap max_steps to avoid excessive memory allocation
+            # when T is much larger than the actual waveform duration
+            uniform_max_steps = min(num_steps, 100000)
             times, mask = generate_uniform_grid(
                 wf_params.Mt_min,
                 wf_params.Mt_end,
                 wf_params.Mdelta_t,
-                max_steps=num_steps,
+                max_steps=uniform_max_steps,
             )
 
         return times, mask
