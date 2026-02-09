@@ -80,7 +80,9 @@ def _generate_adaptive_grid(
         # Use a safe time for the power law to avoid NaNs in padding region
         # (though we mask the result, the computation must be safe)
         safe_t = jnp.minimum(t_curr, -1.0)
-        dt = leading_order_delta_t(eta, safe_t)
+        # Inline leading_order_delta_t computation to avoid nested JIT overhead
+        omega_lo = 0.25 * jnp.power(-eta * safe_t * 0.2, -0.375)
+        dt = 1.0 / (omega_lo / (2.0 * jnp.pi)) / 12.0
 
         # Calculate next time candidate
         t_next = t_curr - dt

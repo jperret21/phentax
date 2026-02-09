@@ -1080,11 +1080,15 @@ class IMRPhenomTHM:
         """
 
         if self.coarse_grain:
+            # For adaptive grids, use a reasonable max_steps cap to avoid excessive memory
+            # allocation. Adaptive grids don't need as many points as uniform grids since
+            # they adjust spacing based on the local dynamics.
+            adaptive_max_steps = min(num_steps // 2, 15000)
             times, mask = generate_adaptive_grid(
                 wf_params.eta,
                 wf_params.Mt_min,
                 wf_params.Mt_end,
-                max_steps=num_steps // 2,  # allocate half steps for adaptive grid
+                max_steps=adaptive_max_steps,
             )
 
         else:
