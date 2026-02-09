@@ -45,6 +45,12 @@ logger = setup_logging(__name__)
 
 ALLOWED_POSITIVE_HMS = [21, 33, 44, 55]
 
+# Maximum number of grid points for time grid allocation to prevent OOM
+# These caps prevent excessive memory allocation when the observation time T
+# is much larger than the actual waveform duration
+MAX_ADAPTIVE_GRID_STEPS = 15000  # For adaptive grids (coarse_grain=True)
+MAX_UNIFORM_GRID_STEPS = 100000  # For uniform grids (coarse_grain=False)
+
 
 class IMRPhenomTHM:
     """
@@ -1083,7 +1089,7 @@ class IMRPhenomTHM:
             # For adaptive grids, use a reasonable max_steps cap to avoid excessive memory
             # allocation. Adaptive grids don't need as many points as uniform grids since
             # they adjust spacing based on the local dynamics.
-            adaptive_max_steps = min(num_steps // 2, 15000)
+            adaptive_max_steps = min(num_steps // 2, MAX_ADAPTIVE_GRID_STEPS)
             times, mask = generate_adaptive_grid(
                 wf_params.eta,
                 wf_params.Mt_min,
@@ -1094,7 +1100,7 @@ class IMRPhenomTHM:
         else:
             # For uniform grids, also cap max_steps to avoid excessive memory allocation
             # when T is much larger than the actual waveform duration
-            uniform_max_steps = min(num_steps, 100000)
+            uniform_max_steps = min(num_steps, MAX_UNIFORM_GRID_STEPS)
             times, mask = generate_uniform_grid(
                 wf_params.Mt_min,
                 wf_params.Mt_end,

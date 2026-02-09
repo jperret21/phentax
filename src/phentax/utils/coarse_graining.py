@@ -81,6 +81,9 @@ def _generate_adaptive_grid(
         # (though we mask the result, the computation must be safe)
         safe_t = jnp.minimum(t_curr, -1.0)
         # Inline leading_order_delta_t computation to avoid nested JIT overhead
+        # Computes delta_t = 1 / (10 * f_LO) where f_LO is the leading order GW frequency
+        # omega_lo = (1/4) * (5 * eta * t)^(-3/8) from PN expansion
+        # delta_t = 1 / (omega_lo / (2*pi)) / 12 = (2*pi) / (12 * omega_lo)
         omega_lo = 0.25 * jnp.power(-eta * safe_t * 0.2, -0.375)
         dt = 1.0 / (omega_lo / (2.0 * jnp.pi)) / 12.0
 
