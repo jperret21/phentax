@@ -174,6 +174,18 @@ class IMRPhenomTHM:
             )
         )
 
+    @property
+    def num_modes(self) -> int:
+        """
+        Total number of modes included in the waveform, including negative m modes if applicable.
+        """
+        num_positive_modes = len(self.higher_modes) + 1  # +1 for the (2,2) mode
+        if self.include_negative_modes:
+            num_negative_modes = len(self.negative_ls)
+            return num_positive_modes + num_negative_modes
+        else:
+            return num_positive_modes
+
     @jax.jit(static_argnames="self")
     def _compute_coeffs_22(
         self,
@@ -712,7 +724,98 @@ class IMRPhenomTHM:
 
         strain_components = h_lms * y_lms
 
-        return times, mask, strain_components        
+        return times, mask, strain_components  
+    
+    def compute_strain_components_amp_phase(
+        self,
+        m1: float | Array,
+        m2: float | Array,
+        chi1z: float | Array,
+        chi2z: float | Array,
+        distance: float | Array,
+        phi_ref: float | Array,
+        f_ref: float | Array,
+        f_min: float | Array,
+        inclination: float,
+        psi: float | Array,
+        delta_t: float = 15.0,
+        t_min: float = jnp.nan,
+        t_ref: float = jnp.nan,
+        T: float | None = None,
+    ) -> tuple[Array, Array, Array, Array]:
+        """
+        Generate complex strain :math:`h_{lm}` for all modes and the multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
+        Extract the amplitude and phase of each mode.
+
+        Parameters
+        ----------
+        m1 : float | Array
+            Mass of the first black hole in solar masses.
+        m2 : float | Array
+            Mass of the second black hole in solar masses.
+        chi1z : float | Array
+            Dimensionless spin of the first black hole along the orbital angular momentum.
+        chi2z : float | Array
+            Dimensionless spin of the second black hole along the orbital angular momentum.
+        distance : float | Array
+            Luminosity distance to the binary in megaparsecs.
+        phi_ref : float | Array
+            Reference phase at frequency f_ref in radians.
+        f_ref : float | Array
+            Reference frequency in Hz.
+        f_min : float | Array
+            Minimum frequency in Hz.
+        inclination : float
+            Inclination angle of the binary in radians.
+        psi : float | Array
+            Polarization angle in radians.
+        delta_t : float, default 15.0
+            Time step for waveform generation in seconds.
+        t_min : float, default jnp.nan
+            Minimum time for waveform generation in seconds. If NaN, will be set by the minimum frequency.
+        t_ref : float, default jnp.nan
+            Reference time for waveform generation in seconds. If NaN, will be set by the reference frequency.
+        T : float | None, default None
+            Total observation time in seconds. If sets, it overrides the default value.
+
+        Returns
+        -------
+        times : Array
+            Time array in seconds. If `self.use_splines = True` and `times` is provided, this will be the provided time array.
+            If `self.use_splines = True` and `times` is None, this will be the internal time array used for waveform generation.
+            If `self.use_splines = False`, this will be the internal time array used for waveform generation.
+        mask : Array
+            Boolean mask indicating valid time points. To be used only if `self.use_splines = False`.
+        h_plus : Array | CubicSpline
+            Plus polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
+            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
+            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
+        h_cross : Array | CubicSpline
+            Cross polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
+            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
+            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
+        """
+        times, mask, strain_components = self.compute_strain_components(
+            m1,
+            m2,
+            chi1z,
+            chi2z,
+            distance,
+            phi_ref,
+            f_ref,
+            f_min,
+            inclination,
+            psi,
+            delta_t,
+            t_min,
+            t_ref,
+            T,
+        )
+
+        amplitudes = jnp.abs(strain_components)
+        phases = jnp.unwrap(jnp.angle(strain_components)) # todo check the sign convention here
+
+        return times, mask, amplitudes, phases
 
     def compute_polarizations(
         self,

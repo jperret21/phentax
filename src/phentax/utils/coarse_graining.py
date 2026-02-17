@@ -47,6 +47,12 @@ def estimate_adaptive_steps(
     total number of grid points, then returns a value rounded up to the
     nearest 5000 for JIT cache friendliness.
 
+    The estimate accounts for the three-region grid structure:
+
+    1. **Post-merger** (tmax → 0): coarse uniform with step ``C_post``.
+    2. **Fine uniform** (0 → ≈ −1): step ``C``.
+    3. **Adaptive** (≈ −1 → tmin): step ``C |t|^{3/8}``.
+
     Parameters
     ----------
     eta : float | Array
@@ -67,20 +73,28 @@ def estimate_adaptive_steps(
     tmax = jnp.atleast_1d(jnp.asarray(tmax, dtype=jnp.float64))
 
     C = (2.0 * jnp.pi / 3.0) * jnp.power(eta / 5.0, 3.0 / 8.0)
+    C_post = jnp.maximum(1.0, C)
 
-    # Uniform region: from tmax to t_thresh=-1 with step C
-    N_uniform = jnp.maximum((tmax + 1.0) / C, 0.0)
+    # Post-merger region: tmax → 0 with step C_post (+1 for the t=0 node)
+    N_post = jnp.where(tmax > 0.0, jnp.ceil(tmax / C_post), 0.0) + 1.0
 
-    # Adaptive region: ODE solution from u_start to u_end = -tmin
-    u_start = jnp.maximum(-tmax, 1.0)
-    N_adaptive = jnp.maximum(
-        (jnp.power(-tmin, 5.0 / 8.0) - jnp.power(u_start, 5.0 / 8.0))
-        / (5.0 * C / 8.0),
+    # Fine uniform region: 0 → ≈ −1 with step C
+    N_fine = jnp.ceil(1.0 / C)
+
+    # Adaptive region: ODE solution from u_fine_end to |tmin|
+    u_fine_end = N_fine * C
+    N_adaptive = jnp.where(
+        -tmin > u_fine_end,
+        jnp.maximum(
+            (jnp.power(-tmin, 5.0 / 8.0) - jnp.power(u_fine_end, 5.0 / 8.0))
+            / (5.0 * C / 8.0),
+            0.0,
+        ),
         0.0,
     )
 
     # Take max across the batch, add safety margin, round up to nearest 5000
-    N_total = int(jnp.ceil(jnp.max(N_uniform + N_adaptive) * 1.2)) + 200
+    N_total = int(jnp.ceil(jnp.max(N_post + N_fine + N_adaptive) * 1.2)) + 200
     N_total = int(jnp.ceil(N_total / 5000.0) * 5000)
     return max(N_total, 5000)  # at least 5000
 
@@ -132,26 +146,30 @@ def _generate_adaptive_grid(
     eta: float, tmin: float, tmax: float, max_steps: int = 10000
 ) -> tuple[jnp.ndarray, jnp.ndarray]:
     """
-    Generate an adaptive time grid using vectorized operations.
+    Generate an adaptive time grid with t=0 (merger time) always included.
 
-    The grid has two regions generated backwards from tmax:
+    The grid has three regions generated backwards from tmax:
 
-    1. **Uniform region** (tmax to t = -1): the leading-order frequency
-       formula is clamped, giving a constant step size ``C``.
-    2. **Adaptive region** (t = -1 to tmin): the step size grows as
+    1. **Post-merger region** (tmax to 0): coarse uniform steps with
+       step size ``C_post = max(1.0, C)`` to efficiently cover the
+       ringdown without over-sampling.
+    2. **Fine uniform region** (0 to t ≈ -1): constant step size ``C``
+       for the late inspiral / merger.
+    3. **Adaptive region** (t ≈ -1 to tmin): the step size grows as
        ``C * |t|^{3/8}`` according to the analytical ODE solution.
 
     The resulting grid is padded with tmin at the beginning (low indices)
-    and sorted in ascending order.
+    and sorted in ascending order.  The merger time ``t = 0`` is always
+    included as a grid point.
 
     Parameters
     ----------
     eta : float
         Symmetric mass ratio.
     tmin : float
-        Minimum time (start of the grid).
+        Minimum time (start of the grid, typically large and negative).
     tmax : float
-        Maximum time (end of the grid).
+        Maximum time (end of the grid, typically positive).
     max_steps : int, optional
         Maximum number of steps in the grid, by default 10000.
 
@@ -163,36 +181,47 @@ def _generate_adaptive_grid(
           True means the point is part of the adaptive grid.
           False means it is a padding value (tmin).
     """
-    # Step-size constant: dt = C * |t|^{3/8}, clamped to dt = C for |t| < 1
+    # Inspiral step-size constant: dt = C * |t|^{3/8}, clamped to C for |t| < 1
     C = (2.0 * jnp.pi / 3.0) * jnp.power(eta / 5.0, 3.0 / 8.0)
 
-    # Threshold time: for t > t_thresh the LO formula is clamped
-    t_thresh = -1.0
+    # Coarser step for the post-merger (ringdown) region
+    C_post = jnp.maximum(1.0, C)
 
-    # Phase 1  – uniform steps from tmax backwards with step C
-    N_uniform = jnp.maximum((tmax - t_thresh) / C, 0.0)
+    # --- Region sizes ---
+    # Region 1 – post-merger: from tmax down to just above 0, step C_post
+    N_post = jnp.where(tmax > 0.0, jnp.ceil(tmax / C_post), 0.0)
 
-    # Phase 2  – adaptive steps, ODE: du/dn = C*u^{3/8}, u = -t
-    # Solution: u(n) = (u0^{5/8} + 5C/8 * n)^{8/5}
-    u_start = jnp.maximum(-tmax, -t_thresh)  # max(-tmax, 1.0)
-    u_start_pow = jnp.power(u_start, 5.0 / 8.0)
+    # Region 2 – fine uniform: from 0 down to ≈ −1 with step C
+    N_fine = jnp.ceil(1.0 / C)
 
-    # All indices at once – fully parallel
+    # Boundary of fine region in |t|
+    u_fine_end = N_fine * C  # ≈ 1, exactly a multiple of C
+    u_fine_pow = jnp.power(u_fine_end, 5.0 / 8.0)
+
+    # --- Build grid (backwards from tmax) ---
     indices = jnp.arange(max_steps, dtype=jnp.float64)
 
-    # Uniform part: t = tmax - idx * C
-    t_uniform = tmax - indices * C
+    # Post-merger: t = tmax - i * C_post
+    t_post = tmax - indices * C_post
 
-    # Adaptive part: t = -(u_start^{5/8} + 5C/8 * a_idx)^{8/5}
-    a_idx = jnp.maximum(indices - N_uniform, 0.0)
-    t_adaptive = -jnp.power(u_start_pow + (5.0 * C / 8.0) * a_idx, 8.0 / 5.0)
+    # Fine uniform (including t=0 at offset 0): t = -(i - N_post) * C
+    fine_offset = jnp.maximum(indices - N_post, 0.0)
+    t_fine = -fine_offset * C
 
-    # Select: uniform for the first N_uniform steps, adaptive after
-    in_uniform = indices < N_uniform
-    t_grid = jnp.where(in_uniform, t_uniform, t_adaptive)
+    # Adaptive: ODE solution continuing from u_fine_end
+    adapt_offset = jnp.maximum(indices - N_post - N_fine, 0.0)
+    t_adapt = -jnp.power(
+        u_fine_pow + (5.0 * C / 8.0) * adapt_offset, 8.0 / 5.0
+    )
 
-    # Validity mask
-    mask = t_grid >= tmin
+    # Select region for each index
+    in_post = indices < N_post
+    in_fine = (indices >= N_post) & (indices <= N_post + N_fine)
+
+    t_grid = jnp.where(in_post, t_post, jnp.where(in_fine, t_fine, t_adapt))
+
+    # Validity mask: point must lie within [tmin, tmax]
+    mask = (t_grid >= tmin) & (t_grid <= tmax)
 
     # Pad invalid points with tmin
     grid = jnp.where(mask, t_grid, tmin)
