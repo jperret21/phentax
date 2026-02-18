@@ -1289,6 +1289,7 @@ class IMRPhenomTHM:
                     "Adaptive grid size not initialized. "
                     "This should not happen — please report a bug."
                 )
+
             times, mask = generate_adaptive_grid(
                 wf_params.eta,
                 wf_params.Mt_min,
@@ -1419,7 +1420,6 @@ class IMRPhenomTHM:
                     T,
                     delta_t,
                 )
-
         times, times_mask = self.get_time_grids(wf_params, num_steps)
 
         return wf_params, times, times_mask, amplitude_coeffs_22, phase_coeffs_22
