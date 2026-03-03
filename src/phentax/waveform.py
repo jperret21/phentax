@@ -629,7 +629,7 @@ class IMRPhenomTHM:
         T: float | None = None,
     ) -> tuple[Array, Array, Array, Array]:
         """
-        Generate complex strain :math:`h_{lm}` for all modes and the multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
+        Generate complex strain :math:`h_{lm}` for all modes and then multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
 
         Parameters
         ----------
