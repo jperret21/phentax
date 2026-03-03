@@ -428,4 +428,3 @@ if __name__ == "__main__":
 
     grids, masks = generate_adaptive_grid(etas, tmins, tmaxs, dts, max_steps=15000)
     ugrids, umasks = generate_uniform_grid(tmins, tmaxs, dts, max_steps=15000)
-    breakpoint()

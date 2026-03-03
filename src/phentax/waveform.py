@@ -14,7 +14,6 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
-from interpax import CubicSpline
 from jaxtyping import Array
 
 from phentax.core import (
@@ -627,7 +626,7 @@ class IMRPhenomTHM:
         t_min: float = jnp.nan,
         t_ref: float = jnp.nan,
         T: float | None = None,
-    ) -> tuple[Array, Array, Array, Array]:
+    ) -> tuple[Array, Array, Array]:
         """
         Generate complex strain :math:`h_{lm}` for all modes and then multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
 
@@ -668,10 +667,8 @@ class IMRPhenomTHM:
             Time array in seconds.
         mask : Array
             Boolean mask indicating valid time points.
-        h_plus : Array
-            Plus polarization strain.
-        h_cross : Array
-            Cross polarization strain.
+        h_lms : Array
+            Complex strain arrays for all modes, shape (Nbinaries, Nmodes, Ntimes).
         """
         times, mask, h_lms = self.compute_hlms(
             m1,
@@ -727,7 +724,7 @@ class IMRPhenomTHM:
         T: float | None = None,
     ) -> tuple[Array, Array, Array, Array]:
         """
-        Generate complex strain :math:`h_{lm}` for all modes and the multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
+        Generate complex strain :math:`h_{lm}` for all modes, and multiply them by the corresponding spin-weighted spherical harmonics to get the contribution to the strain from each mode.
         Extract the amplitude and phase of each mode.
 
         Parameters
@@ -764,19 +761,13 @@ class IMRPhenomTHM:
         Returns
         -------
         times : Array
-            Time array in seconds. If `self.use_splines = True` and `times` is provided, this will be the provided time array.
-            If `self.use_splines = True` and `times` is None, this will be the internal time array used for waveform generation.
-            If `self.use_splines = False`, this will be the internal time array used for waveform generation.
+            Time array in seconds. 
         mask : Array
-            Boolean mask indicating valid time points. To be used only if `self.use_splines = False`.
-        h_plus : Array | CubicSpline
-            Plus polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
-            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
-            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
-        h_cross : Array | CubicSpline
-            Cross polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
-            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
-            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
+            Boolean mask indicating valid time points.
+        amplitudes : Array
+            Amplitude arrays for all modes, shape (Nbinaries, Nmodes, Ntimes).
+        phases : Array
+            Phase arrays for all modes, shape (Nbinaries, Nmodes, Ntimes).
         """
         times, mask, strain_components = self.compute_strain_components(
             m1,
@@ -856,19 +847,13 @@ class IMRPhenomTHM:
         Returns
         -------
         times : Array
-            Time array in seconds. If `self.use_splines = True` and `times` is provided, this will be the provided time array.
-            If `self.use_splines = True` and `times` is None, this will be the internal time array used for waveform generation.
-            If `self.use_splines = False`, this will be the internal time array used for waveform generation.
+            Time array in seconds. 
         mask : Array
-            Boolean mask indicating valid time points. To be used only if `self.use_splines = False`.
-        h_plus : Array | CubicSpline
-            Plus polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
-            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
-            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
-        h_cross : Array | CubicSpline
-            Cross polarization strain. If `self.use_splines = True` and `times` is `None`, this will be a CubicSpline object representing the interpolated strain.
-            If `self.use_splines = True` and `times` is provided, this will be the interpolated strain evaluated at the provided times.
-            If `self.use_splines = False`, this will be the strain evaluated at the internal time array.
+            Boolean mask indicating valid time points. 
+        h_plus : Array
+            Plus polarization strain. 
+        h_cross : Array
+            Cross polarization strain. 
         """
         times, mask, strain_components = self.compute_strain_components(
             m1,
