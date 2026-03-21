@@ -164,7 +164,7 @@ class IMRPhenomTHM:
         return self._max_adaptive_steps
 
     @max_adaptive_steps.setter
-    def max_adaptive_steps(self, value: Optional[int]= None):
+    def max_adaptive_steps(self, value: Optional[int] = None):
         if value is not None:
             logger.debug("Setting max_adaptive_steps to %d", value)
             self._max_adaptive_steps = value
@@ -771,7 +771,7 @@ class IMRPhenomTHM:
         Returns
         -------
         times : Array
-            Time array in seconds. 
+            Time array in seconds.
         mask : Array
             Boolean mask indicating valid time points.
         amplitudes : Array
@@ -797,9 +797,7 @@ class IMRPhenomTHM:
         )
 
         amplitudes = jnp.abs(strain_components)
-        phases = jnp.unwrap(
-            jnp.angle(strain_components)
-        )
+        phases = jnp.unwrap(jnp.angle(strain_components))
 
         return times, mask, amplitudes, phases
 
@@ -857,13 +855,13 @@ class IMRPhenomTHM:
         Returns
         -------
         times : Array
-            Time array in seconds. 
+            Time array in seconds.
         mask : Array
-            Boolean mask indicating valid time points. 
+            Boolean mask indicating valid time points.
         h_plus : Array
-            Plus polarization strain. 
+            Plus polarization strain.
         h_cross : Array
-            Cross polarization strain. 
+            Cross polarization strain.
         """
         times, mask, strain_components = self.compute_strain_components(
             m1,
@@ -1232,9 +1230,16 @@ class IMRPhenomTHM:
                     "This should not happen — please report a bug."
                 )
 
+            # Clamp Mt_min so the adaptive grid doesn't extend beyond Tobs.
+            # num_steps * Mdelta_t = T/M = Tobs in mass units.
+            Mt_min_obs = jnp.maximum(
+                wf_params.Mt_min,
+                wf_params.Mt_end - num_steps * wf_params.Mdelta_t,
+            )
+
             times, mask = generate_adaptive_grid(
                 wf_params.eta,
-                wf_params.Mt_min,
+                Mt_min_obs,
                 wf_params.Mt_end,
                 wf_params.Mdelta_t,
                 max_steps=self.max_adaptive_steps,
@@ -1362,10 +1367,10 @@ class IMRPhenomTHM:
                 self.max_adaptive_steps,
                 T,
                 delta_t,
-                )
+            )
         times, times_mask = self.get_time_grids(wf_params, num_steps)
 
-        # store the parameters to access the coarse-grained time array if needed 
+        # store the parameters to access the coarse-grained time array if needed
         self.wf_params = wf_params
 
         return wf_params, times, times_mask, amplitude_coeffs_22, phase_coeffs_22
