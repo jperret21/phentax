@@ -16,14 +16,6 @@ At present, publications using this code are discouraged until the package reach
 
 ## Installation
 
-### Installation from Package Index
-`phentax` can be installed directly with `pip`. Currently, the latest version is available on [TestPyPI](https://test.pypi.org/simple/). To install the latest version, run one of the following commands depending on your system configuration:
-```
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cpu]' # For CPU-only installation
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cuda12]' # For GPU installation with CUDA 12.x support
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cuda13]' # For GPU installation with CUDA 13.x support
-```
-
 ### Installation from source
 This project is managed by [uv](https://docs.astral.sh/uv/). To set up the development environment, first clone the repository:
 ```
@@ -51,6 +43,15 @@ After installation, run your commands within this environment using:
 ```
 uv run <YOUR-COMMAND>
 ```
+
+### Installation from Package Index
+`phentax` can also be installed directly with `pip`. Currently, the latest version is available on [TestPyPI](https://test.pypi.org/simple/). To install the latest version in your environment, run one of the following commands depending on your system configuration:
+```
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cpu]' # For CPU-only installation
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cuda12]' # For GPU installation with CUDA 12.x support
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ 'phentax[cuda13]' # For GPU installation with CUDA 13.x support
+```
+We still recommend installing the package in a virtual environment to avoid conflicts with other projects.
 
 ## Credits
 The original `python` implementation of the IMRPhenomT(HM) waveform models in the `phenomxpy` package were developed by Cecilio García Quirós. This JAX re-implementation builds upon his work. If you use this code in your research, please cite the original IMRPhenomT(HM) paper, and both the original `phenomxpy` package and this `phentax` implementation:
