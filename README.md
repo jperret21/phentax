@@ -1,6 +1,8 @@
 # PhenTAX: a JAX Implementation of the IMRPhenomTHM waveform family
 
 [![Documentation](https://github.com/asantini29/phentax/actions/workflows/docs.yml/badge.svg)](https://asantini29.github.io/phentax/)
+[![TestPyPI](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fphentax%2Fjson&query=%24.info.version&label=TestPyPI&logo=pypi)](https://test.pypi.org/project/phentax/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 `phentax` is a JAX re-implementation of the IMRPhenomT and IMRPhenomTHM gravitational waveform models as implemented in the [`phenomxpy` package](https://gitlab.com/imrphenom-dev/phenomxpy).
 
@@ -8,6 +10,8 @@ At present, `phentax` supports the generation of time-domain waveforms for quasi
 
 ## Note
 This package is currently released as a beta version, and it could still show some undesired behaviors. If you encounter any issues, please report them on the [GitHub issues tracker](https://github.com/asantini29/phentax/issues). We welcome any contribution to the codebase: if you want to contribute, please open a pull request or contact the authors directly.
+
+At present, publications using this code are discouraged until the package reaches a stable release. Please contact the authors if you want to discuss this further.
 
 ## Installation
 
@@ -77,3 +81,9 @@ The original `python` implementation of the IMRPhenomT(HM) waveform models in th
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Contributing
+Contributions to this project are welcome! If you would like to contribute, please follow the guidelines outlined in the [CONTRIBUTING](CONTRIBUTING.md) file.
+
+## Versioning
+This project uses [Semantic Versioning](https://semver.org/). Current version: [![Version](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftest.pypi.org%2Fpypi%2Fphentax%2Fjson&query=%24.info.version&label=Version&logo=pypi)](https://test.pypi.org/project/phentax/)
