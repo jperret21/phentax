@@ -244,18 +244,20 @@ class IMRPhenomTHM:
             Phase array for the (2,2) mode.
         """
 
-        amplitude_22 = jnp.abs(
-            masked_evaluate(
-                times,
-                mask,
-                lambda t: imr_amplitude(
-                    t,
-                    wf_params.eta,
-                    amplitude_coeffs,
-                    phase_coeffs,
-                ),
-            )
+        # Use a non-zero fill so that jnp.abs gradient is defined at masked-out points.
+        # abs(0+0j) at z=0 has VJP g*conj(z)/(2|z|) = g*0/0 = nan even when g=0.
+        _raw_amp = masked_evaluate(
+            times,
+            mask,
+            lambda t: imr_amplitude(
+                t,
+                wf_params.eta,
+                amplitude_coeffs,
+                phase_coeffs,
+            ),
+            fill_value=1.0 + 0.0j,
         )
+        amplitude_22 = jnp.where(mask, jnp.abs(_raw_amp), 0.0)
 
         phase_22 = masked_evaluate(
             times,

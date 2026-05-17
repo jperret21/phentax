@@ -199,8 +199,16 @@ def _compute_waveform_params(
 
     Mdelta_t = second_to_mass(delta_t, total_mass)
 
-    Mt_ref = second_to_mass(t_ref, total_mass) if t_ref is not None else jnp.nan
-    Mt_min = second_to_mass(t_min, total_mass) if t_min is not None else jnp.nan
+    # When t is jnp.nan (default sentinel), second_to_mass(nan, total_mass) = nan/total_mass
+    # which has a NaN derivative w.r.t. total_mass. This NaN leaks through lax.cond VJPs
+    # via 0 * nan = nan (IEEE 754) even for unselected branches. Fix: replace nan with a
+    # finite sentinel so the false branch's gradient is 0*finite=0 rather than 0*nan=nan.
+    def _safe_to_Mt(t):
+        t_safe = jnp.where(jnp.isnan(t), 0.0, t)
+        return jnp.where(jnp.isnan(t), jnp.nan, second_to_mass(t_safe, total_mass))
+
+    Mt_ref = _safe_to_Mt(t_ref) if t_ref is not None else jnp.nan
+    Mt_min = _safe_to_Mt(t_min) if t_min is not None else jnp.nan
 
     # Amplitude prefactor: M / D
     # Convert distance from Mpc to meters
