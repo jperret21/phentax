@@ -1411,16 +1411,18 @@ class IMRPhenomTHM:
                 jnp.abs(jnp.atleast_1d(chi2z)) <= 1
             ), "Spin must be between -1 and 1"
 
-        if jnp.isnan(t_min).any():
-            if jnp.isnan(f_min).any():
+        # The checks below are Python-level `if`s: under jax.jit every jnp value is
+        # a tracer (even constants), so they only run on concrete inputs.
+        if not is_tracing(t_min) and jnp.isnan(t_min).any():
+            if not is_tracing(f_min) and jnp.isnan(f_min).any():
                 raise ValueError(
                     "If t_min is NaN, f_min must be set to a finite value."
                 )
             else:
                 logger.debug("Setting t_min based on f_min")
 
-        if jnp.isnan(t_ref).any():
-            if jnp.isnan(f_ref).any():
+        if not is_tracing(t_ref) and jnp.isnan(t_ref).any():
+            if not is_tracing(f_ref) and jnp.isnan(f_ref).any():
                 raise ValueError(
                     "If t_ref is NaN, f_ref must be set to a finite value."
                 )
